@@ -1,0 +1,13 @@
+{
+    "name": "flux-pwa-generator-api",
+    "productName": "flux-pwa-generator-api",
+    "version": "2022-10-31-1",
+    "description": "",
+    "keywords": [],
+    "homepage": "",
+    "peerDependencies": {
+        "flux-json-api": "*",
+        "flux-localization-api": "*"
+    },
+    "private": true
+}
