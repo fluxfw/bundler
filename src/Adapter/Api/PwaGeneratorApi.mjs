@@ -68,17 +68,15 @@ export class PwaGeneratorApi {
 
     /**
      * @param {string} web_root
-     * @param {string} application_cache_file
-     * @param {string} application_cache_prefix
      * @param {string} service_worker_file
+     * @param {{[key: string]: *}} data
      * @returns {Promise<void>}
      */
-    async generateServiceWorker(web_root, application_cache_file, application_cache_prefix, service_worker_file) {
+    async generateServiceWorker(web_root, service_worker_file, data) {
         await (await this.#getPwaService()).generateServiceWorker(
             web_root,
-            application_cache_file,
-            application_cache_prefix,
-            service_worker_file
+            service_worker_file,
+            data
         );
     }
 
