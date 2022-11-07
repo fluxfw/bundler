@@ -1,4 +1,5 @@
 /** @typedef {import("../../../../flux-json-api/src/Adapter/Api/JsonApi.mjs").JsonApi} JsonApi */
+/** @typedef {import("../../../../flux-localization-api/src/Service/Localization/Port/LocalizationService.mjs").LocalizationService} LocalizationService */
 /** @typedef {import("../../Service/Pwa/Port/PwaService.mjs").PwaService} PwaService */
 
 export class PwaGeneratorApi {
@@ -6,6 +7,10 @@ export class PwaGeneratorApi {
      * @type {JsonApi}
      */
     #json_api;
+    /**
+     * @type {LocalizationService | null}
+     */
+    #localization_service = null;
     /**
      * @type {PwaService | null}
      */
@@ -85,9 +90,21 @@ export class PwaGeneratorApi {
      */
     async #getPwaService() {
         this.#pwa_service ??= (await import("../../Service/Pwa/Port/PwaService.mjs")).PwaService.new(
-            this.#json_api
+            this.#json_api,
+            await this.#getLocalizationService()
         );
 
         return this.#pwa_service;
+    }
+
+    /**
+     * @returns {Promise<LocalizationService>}
+     */
+    async #getLocalizationService() {
+        this.#localization_service ??= (await import("../../../../flux-localization-api/src/Service/Localization/Port/LocalizationService.mjs")).LocalizationService.new(
+            this.#json_api
+        );
+
+        return this.#localization_service;
     }
 }

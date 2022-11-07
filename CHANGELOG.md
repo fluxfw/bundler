@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2022-11-07-1
+
+Changes:
+
+- `LocalizationService`
+
 ## v2022-11-02-1
 
 Changes:
