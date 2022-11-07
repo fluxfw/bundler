@@ -18,12 +18,13 @@ export class GenerateServiceWorkerCommand {
 
     /**
      * @param {string} web_root
-     * @param {string} service_worker_file
+     * @param {string} service_worker_template_mjs_file
+     * @param {string} service_worker_mjs_file
      * @param {{[key: string]: *}} data
      * @returns {Promise<void>}
      */
-    async generateServiceWorker(web_root, service_worker_file, data) {
-        await writeFile(service_worker_file, (await readFile(service_worker_file, "utf8")).replaceAll("{ /*%DATA%*/ }", JSON.stringify({
+    async generateServiceWorker(web_root, service_worker_template_mjs_file, service_worker_mjs_file, data) {
+        await writeFile(service_worker_mjs_file, (await readFile(service_worker_template_mjs_file, "utf8")).replaceAll("{ /*%DATA%*/ }", JSON.stringify({
             ...data,
             APPLICATION_CACHE_VERSION: crypto.randomUUID(),
             APPLICATION_CACHE_FILES: [

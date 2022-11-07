@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2022-11-07-2
+
+Changes:
+
+- Service worker template
+
 ## v2022-11-07-1
 
 Changes:
