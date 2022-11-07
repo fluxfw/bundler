@@ -2,29 +2,38 @@ import { writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 /** @typedef {import("../../../../../flux-json-api/src/Adapter/Api/JsonApi.mjs").JsonApi} JsonApi */
+/** @typedef {import("../../../../../flux-localization-api/src/Service/Localization/Port/LocalizationService.mjs").LocalizationService} LocalizationService */
 
 export class GenerateIndexHtmlsCommand {
     /**
      * @type {JsonApi}
      */
     #json_api;
+    /**
+     * @type {LocalizationService}
+     */
+    #localization_service;
 
     /**
      * @param {JsonApi} json_api
+     * @param {LocalizationService} localization_service
      * @returns {GenerateIndexHtmlsCommand}
      */
-    static new(json_api) {
+    static new(json_api, localization_service) {
         return new this(
-            json_api
+            json_api,
+            localization_service
         );
     }
 
     /**
      * @param {JsonApi} json_api
+     * @param {LocalizationService} localization_service
      * @private
      */
-    constructor(json_api) {
+    constructor(json_api, localization_service) {
         this.#json_api = json_api;
+        this.#localization_service = localization_service;
     }
 
     /**
@@ -37,7 +46,7 @@ export class GenerateIndexHtmlsCommand {
      */
     async generateIndexHtmls(manifest_json_file, index_html_file, web_manifest_json_file, web_index_mjs_file, localization_folder = null) {
         for (const language of [
-            ...(localization_folder !== null ? await this.#importAvailableLanguagesJson(
+            ...(localization_folder !== null ? await this.#localization_service.importAvailableLanguagesJson(
                 localization_folder
             ) : null) ?? [],
             ""
@@ -118,18 +127,5 @@ export class GenerateIndexHtmlsCommand {
         }
 
         return join(dirname(web_manifest_json_file), url);
-    }
-
-    /**
-     * @param {string} localization_folder
-     * @returns {Promise<string[] | null>}
-     */
-    async #importAvailableLanguagesJson(localization_folder) {
-        return (await import("../../../../../flux-localization-api/src/Service/Localization/Command/ImportAvailableLanguagesJsonCommand.mjs")).ImportAvailableLanguagesJsonCommand.new(
-            this.#json_api
-        )
-            .importAvailableLanguagesJson(
-                localization_folder
-            );
     }
 }

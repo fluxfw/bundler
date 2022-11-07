@@ -1,27 +1,36 @@
 /** @typedef {import("../../../../../flux-json-api/src/Adapter/Api/JsonApi.mjs").JsonApi} JsonApi */
+/** @typedef {import("../../../../../flux-localization-api/src/Service/Localization/Port/LocalizationService.mjs").LocalizationService} LocalizationService */
 
 export class PwaService {
     /**
      * @type {JsonApi}
      */
     #json_api;
+    /**
+     * @type {LocalizationService}
+     */
+    #localization_service;
 
     /**
      * @param {JsonApi} json_api
+     * @param {LocalizationService} localization_service
      * @returns {PwaService}
      */
-    static new(json_api) {
+    static new(json_api, localization_service) {
         return new this(
-            json_api
+            json_api,
+            localization_service
         );
     }
 
     /**
      * @param {JsonApi} json_api
+     * @param {LocalizationService} localization_service
      * @private
      */
-    constructor(json_api) {
+    constructor(json_api, localization_service) {
         this.#json_api = json_api;
+        this.#localization_service = localization_service;
     }
 
     /**
@@ -34,7 +43,8 @@ export class PwaService {
      */
     async generateIndexHtmls(manifest_json_file, index_html_file, web_manifest_json_file, web_index_mjs_file, localization_folder = null) {
         await (await import("../Command/GenerateIndexHtmlsCommand.mjs")).GenerateIndexHtmlsCommand.new(
-            this.#json_api
+            this.#json_api,
+            this.#localization_service
         )
             .generateIndexHtmls(
                 manifest_json_file,
@@ -52,7 +62,8 @@ export class PwaService {
      */
     async generateManifestJsons(manifest_json_file, localization_folder) {
         await (await import("../Command/GenerateManifestJsonsCommand.mjs")).GenerateManifestJsonsCommand.new(
-            this.#json_api
+            this.#json_api,
+            this.#localization_service
         )
             .generateManifestJsons(
                 manifest_json_file,
