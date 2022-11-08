@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2022-11-08-1
+
+Changes:
+
+- Fix missing service worker file in `APPLICATION_CACHE_FILES`
+
 ## v2022-11-07-2
 
 Changes:
