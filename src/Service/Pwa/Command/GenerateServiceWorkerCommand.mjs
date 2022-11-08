@@ -24,6 +24,8 @@ export class GenerateServiceWorkerCommand {
      * @returns {Promise<void>}
      */
     async generateServiceWorker(web_root, service_worker_template_mjs_file, service_worker_mjs_file, data) {
+        await writeFile(service_worker_mjs_file, "", "utf8");
+
         await writeFile(service_worker_mjs_file, (await readFile(service_worker_template_mjs_file, "utf8")).replaceAll("{ /*%DATA%*/ }", JSON.stringify({
             ...data,
             APPLICATION_CACHE_VERSION: crypto.randomUUID(),
