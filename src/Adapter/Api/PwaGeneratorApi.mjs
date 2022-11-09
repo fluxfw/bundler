@@ -1,5 +1,5 @@
 /** @typedef {import("../../../../flux-json-api/src/Adapter/Api/JsonApi.mjs").JsonApi} JsonApi */
-/** @typedef {import("../../../../flux-localization-api/src/Service/Localization/Port/LocalizationService.mjs").LocalizationService} LocalizationService */
+/** @typedef {import("../../../../flux-localization-api/src/Adapter/Api/LocalizationApi.mjs").LocalizationApi} LocalizationApi */
 /** @typedef {import("../../Service/Pwa/Port/PwaService.mjs").PwaService} PwaService */
 
 export class PwaGeneratorApi {
@@ -8,9 +8,9 @@ export class PwaGeneratorApi {
      */
     #json_api;
     /**
-     * @type {LocalizationService | null}
+     * @type {LocalizationApi | null}
      */
-    #localization_service = null;
+    #localization_api;
     /**
      * @type {PwaService | null}
      */
@@ -18,20 +18,24 @@ export class PwaGeneratorApi {
 
     /**
      * @param {JsonApi} json_api
+     * @param {LocalizationApi | null} localization_api
      * @returns {PwaGeneratorApi}
      */
-    static new(json_api) {
+    static new(json_api, localization_api = null) {
         return new this(
-            json_api
+            json_api,
+            localization_api
         );
     }
 
     /**
      * @param {JsonApi} json_api
+     * @param {LocalizationApi | null} localization_api
      * @private
      */
-    constructor(json_api) {
+    constructor(json_api, localization_api) {
         this.#json_api = json_api;
+        this.#localization_api = localization_api;
     }
 
     /**
@@ -93,20 +97,9 @@ export class PwaGeneratorApi {
     async #getPwaService() {
         this.#pwa_service ??= (await import("../../Service/Pwa/Port/PwaService.mjs")).PwaService.new(
             this.#json_api,
-            await this.#getLocalizationService()
+            this.#localization_api
         );
 
         return this.#pwa_service;
-    }
-
-    /**
-     * @returns {Promise<LocalizationService>}
-     */
-    async #getLocalizationService() {
-        this.#localization_service ??= (await import("../../../../flux-localization-api/src/Service/Localization/Port/LocalizationService.mjs")).LocalizationService.new(
-            this.#json_api
-        );
-
-        return this.#localization_service;
     }
 }
