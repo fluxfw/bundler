@@ -1,5 +1,5 @@
 /** @typedef {import("../../../../../flux-json-api/src/Adapter/Api/JsonApi.mjs").JsonApi} JsonApi */
-/** @typedef {import("../../../../../flux-localization-api/src/Service/Localization/Port/LocalizationService.mjs").LocalizationService} LocalizationService */
+/** @typedef {import("../../../../../flux-localization-api/src/Adapter/Api/LocalizationApi.mjs").LocalizationApi} LocalizationApi */
 
 export class PwaService {
     /**
@@ -7,30 +7,30 @@ export class PwaService {
      */
     #json_api;
     /**
-     * @type {LocalizationService}
+     * @type {LocalizationApi | null}
      */
-    #localization_service;
+    #localization_api;
 
     /**
      * @param {JsonApi} json_api
-     * @param {LocalizationService} localization_service
+     * @param {LocalizationApi | null} localization_api
      * @returns {PwaService}
      */
-    static new(json_api, localization_service) {
+    static new(json_api, localization_api = null) {
         return new this(
             json_api,
-            localization_service
+            localization_api
         );
     }
 
     /**
      * @param {JsonApi} json_api
-     * @param {LocalizationService} localization_service
+     * @param {LocalizationApi | null} localization_api
      * @private
      */
-    constructor(json_api, localization_service) {
+    constructor(json_api, localization_api) {
         this.#json_api = json_api;
-        this.#localization_service = localization_service;
+        this.#localization_api = localization_api;
     }
 
     /**
@@ -42,9 +42,13 @@ export class PwaService {
      * @returns {Promise<void>}
      */
     async generateIndexHtmls(manifest_json_file, index_html_file, web_manifest_json_file, web_index_mjs_file, localization_folder = null) {
+        if (this.#localization_api === null) {
+            throw new Error("Missing LocalizationApi");
+        }
+
         await (await import("../Command/GenerateIndexHtmlsCommand.mjs")).GenerateIndexHtmlsCommand.new(
             this.#json_api,
-            this.#localization_service
+            this.#localization_api
         )
             .generateIndexHtmls(
                 manifest_json_file,
@@ -61,9 +65,13 @@ export class PwaService {
      * @returns {Promise<void>}
      */
     async generateManifestJsons(manifest_json_file, localization_folder) {
+        if (this.#localization_api === null) {
+            throw new Error("Missing LocalizationApi");
+        }
+
         await (await import("../Command/GenerateManifestJsonsCommand.mjs")).GenerateManifestJsonsCommand.new(
             this.#json_api,
-            this.#localization_service
+            this.#localization_api
         )
             .generateManifestJsons(
                 manifest_json_file,

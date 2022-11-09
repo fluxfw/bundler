@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises";
 
 /** @typedef {import("../../../../../flux-json-api/src/Adapter/Api/JsonApi.mjs").JsonApi} JsonApi */
-/** @typedef {import("../../../../../flux-localization-api/src/Service/Localization/Port/LocalizationService.mjs").LocalizationService} LocalizationService */
+/** @typedef {import("../../../../../flux-localization-api/src/Adapter/Api/LocalizationApi.mjs").LocalizationApi} LocalizationApi */
 
 export class GenerateManifestJsonsCommand {
     /**
@@ -9,30 +9,30 @@ export class GenerateManifestJsonsCommand {
      */
     #json_api;
     /**
-     * @type {LocalizationService}
+     * @type {LocalizationApi}
      */
-    #localization_service;
+    #localization_api;
 
     /**
      * @param {JsonApi} json_api
-     * @param {LocalizationService} localization_service
+     * @param {LocalizationApi} localization_api
      * @returns {GenerateManifestJsonsCommand}
      */
-    static new(json_api, localization_service) {
+    static new(json_api, localization_api) {
         return new this(
             json_api,
-            localization_service
+            localization_api
         );
     }
 
     /**
      * @param {JsonApi} json_api
-     * @param {LocalizationService} localization_service
+     * @param {LocalizationApi} localization_api
      * @private
      */
-    constructor(json_api, localization_service) {
+    constructor(json_api, localization_api) {
         this.#json_api = json_api;
-        this.#localization_service = localization_service;
+        this.#localization_api = localization_api;
     }
 
     /**
@@ -45,49 +45,39 @@ export class GenerateManifestJsonsCommand {
             manifest_json_file
         );
 
-        const available_languages = await this.#localization_service.importAvailableLanguagesJson(
+        await this.#localization_api.addModule(
             localization_folder
         );
 
-        if (available_languages === null) {
-            return;
-        }
+        for (const language of Object.keys((await this.#localization_api.getLanguages()).other)) {
+            const localized_manifest = structuredClone(manifest);
 
-        for (const language of available_languages) {
-            const localization = await this.#localization_service.importLocalizationJson(
-                localization_folder,
+            localized_manifest.description = await this.#localization_api.translate(
+                localized_manifest.description ?? "",
+                null,
+                null,
                 language
             );
 
-            const localized_manifest = structuredClone(manifest);
-
-            localized_manifest.description = this.#localization_service.translate(
-                localized_manifest.description ?? "",
-                {
-                    localization
-                }
-            );
-
-            localized_manifest.dir = await this.#localization_service.getDirection(
-                {
-                    language
-                }
-            );
+            localized_manifest.dir = (await this.#localization_api.getLanguage(
+                null,
+                language
+            )).direction;
 
             localized_manifest.lang = language;
 
-            localized_manifest.name = this.#localization_service.translate(
+            localized_manifest.name = await this.#localization_api.translate(
                 localized_manifest.name ?? "",
-                {
-                    localization
-                }
+                null,
+                null,
+                language
             );
 
-            localized_manifest.short_name = this.#localization_service.translate(
+            localized_manifest.short_name = await this.#localization_api.translate(
                 localized_manifest.short_name ?? "",
-                {
-                    localization
-                }
+                null,
+                null,
+                language
             );
 
             await writeFile(`${manifest_json_file.substring(0, manifest_json_file.lastIndexOf("."))}-${language}.json`, `${JSON.stringify(localized_manifest, null, 4)}

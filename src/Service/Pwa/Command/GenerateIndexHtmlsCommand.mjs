@@ -2,7 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 /** @typedef {import("../../../../../flux-json-api/src/Adapter/Api/JsonApi.mjs").JsonApi} JsonApi */
-/** @typedef {import("../../../../../flux-localization-api/src/Service/Localization/Port/LocalizationService.mjs").LocalizationService} LocalizationService */
+/** @typedef {import("../../../../../flux-localization-api/src/Adapter/Api/LocalizationApi.mjs").LocalizationApi} LocalizationApi */
 
 export class GenerateIndexHtmlsCommand {
     /**
@@ -10,30 +10,30 @@ export class GenerateIndexHtmlsCommand {
      */
     #json_api;
     /**
-     * @type {LocalizationService}
+     * @type {LocalizationApi}
      */
-    #localization_service;
+    #localization_api;
 
     /**
      * @param {JsonApi} json_api
-     * @param {LocalizationService} localization_service
+     * @param {LocalizationApi} localization_api
      * @returns {GenerateIndexHtmlsCommand}
      */
-    static new(json_api, localization_service) {
+    static new(json_api, localization_api) {
         return new this(
             json_api,
-            localization_service
+            localization_api
         );
     }
 
     /**
      * @param {JsonApi} json_api
-     * @param {LocalizationService} localization_service
+     * @param {LocalizationApi} localization_api
      * @private
      */
-    constructor(json_api, localization_service) {
+    constructor(json_api, localization_api) {
         this.#json_api = json_api;
-        this.#localization_service = localization_service;
+        this.#localization_api = localization_api;
     }
 
     /**
@@ -45,10 +45,14 @@ export class GenerateIndexHtmlsCommand {
      * @returns {Promise<void>}
      */
     async generateIndexHtmls(manifest_json_file, index_html_file, web_manifest_json_file, web_index_mjs_file, localization_folder = null) {
-        for (const language of [
-            ...(localization_folder !== null ? await this.#localization_service.importAvailableLanguagesJson(
+        if (localization_folder !== null) {
+            await this.#localization_api.addModule(
                 localization_folder
-            ) : null) ?? [],
+            );
+        }
+
+        for (const language of [
+            ...(localization_folder !== null ? Object.keys((await this.#localization_api.getLanguages()).other) : null) ?? [],
             ""
         ]) {
             const manifest = await this.#json_api.importJson(
