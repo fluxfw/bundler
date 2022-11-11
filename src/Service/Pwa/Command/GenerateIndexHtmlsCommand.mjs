@@ -52,7 +52,7 @@ export class GenerateIndexHtmlsCommand {
         }
 
         for (const language of [
-            ...(localization_folder !== null ? Object.keys((await this.#localization_api.getLanguages()).other) : null) ?? [],
+            ...(localization_folder !== null ? Object.keys((await this.#localization_api.getLanguages()).all) : null) ?? [],
             ""
         ]) {
             const manifest = await this.#json_api.importJson(
