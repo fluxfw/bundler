@@ -49,7 +49,7 @@ export class GenerateManifestJsonsCommand {
             localization_folder
         );
 
-        for (const language of Object.keys((await this.#localization_api.getLanguages()).other)) {
+        for (const language of Object.keys((await this.#localization_api.getLanguages()).all)) {
             const localized_manifest = structuredClone(manifest);
 
             localized_manifest.description = await this.#localization_api.translate(
