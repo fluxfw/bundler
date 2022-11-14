@@ -1,5 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join } from "node:path/posix";
 
 /** @typedef {import("../../../../../flux-json-api/src/Adapter/Api/JsonApi.mjs").JsonApi} JsonApi */
 /** @typedef {import("../../../../../flux-localization-api/src/Adapter/Api/LocalizationApi.mjs").LocalizationApi} LocalizationApi */

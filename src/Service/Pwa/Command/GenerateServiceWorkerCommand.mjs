@@ -1,4 +1,4 @@
-import { join, relative } from "node:path";
+import { join, relative } from "node:path/posix";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 
 export class GenerateServiceWorkerCommand {
