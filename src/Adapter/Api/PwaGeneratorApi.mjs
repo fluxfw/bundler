@@ -39,13 +39,6 @@ export class PwaGeneratorApi {
     }
 
     /**
-     * @returns {Promise<void>}
-     */
-    async init() {
-
-    }
-
-    /**
      * @param {string} manifest_json_file
      * @param {string} index_html_file
      * @param {string} web_manifest_json_file
