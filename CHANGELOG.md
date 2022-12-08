@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2022-12-08-2
+
+Changes:
+
+- Fix default `service-worker-template.mjs`
+
 ## v2022-12-08-1
 
 Changes:

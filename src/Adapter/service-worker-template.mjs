@@ -5,7 +5,8 @@ const APPLICATION_CACHE_NAME = `${APPLICATION_CACHE_PREFIX}${APPLICATION_CACHE_V
 //const __dirname = import.meta.url.substring(0, import.meta.url.lastIndexOf("/"));
 const __dirname = `${location.href.substring(0, location.href.lastIndexOf("/"))}`;
 
-const __dirname_path = `${new URL(__dirname).pathname}/`;
+const ___dirname_path = `${new URL(__dirname).pathname}`;
+const __dirname_path = ___dirname_path !== "/" ? `${___dirname_path}/` : "/";
 
 let application_cache = null;
 
