@@ -1,5 +1,8 @@
-import { join, relative } from "node:path/posix";
+import { fileURLToPath } from "node:url";
+import { dirname, join, relative } from "node:path/posix";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export class GenerateServiceWorkerCommand {
     /**
@@ -18,17 +21,17 @@ export class GenerateServiceWorkerCommand {
 
     /**
      * @param {string} web_root
-     * @param {string} service_worker_template_mjs_file
      * @param {string} service_worker_mjs_file
-     * @param {{[key: string]: *}} data
+     * @param {string} application_cache_prefix
+     * @param {string | null} service_worker_template_mjs_file
+     * @param {{[key: string]: *} | null} data
      * @returns {Promise<void>}
      */
-    async generateServiceWorker(web_root, service_worker_template_mjs_file, service_worker_mjs_file, data) {
+    async generateServiceWorker(web_root, service_worker_mjs_file, application_cache_prefix, service_worker_template_mjs_file = null, data = null) {
         await writeFile(service_worker_mjs_file, "", "utf8");
 
-        await writeFile(service_worker_mjs_file, (await readFile(service_worker_template_mjs_file, "utf8")).replaceAll("{ /*%DATA%*/ }", JSON.stringify({
-            ...data,
-            APPLICATION_CACHE_VERSION: crypto.randomUUID(),
+        await writeFile(service_worker_mjs_file, (await readFile(service_worker_template_mjs_file ?? join(__dirname, "..", "..", "..", "Adapter", "service-worker-template.mjs"), "utf8")).replaceAll("{ /*%DATA%*/ }", JSON.stringify({
+            ...data ?? {},
             APPLICATION_CACHE_FILES: [
                 "",
                 ...await (async function scanFiles(folder) {
@@ -48,7 +51,9 @@ export class GenerateServiceWorkerCommand {
 
                     return files;
                 })(web_root)
-            ]
+            ],
+            APPLICATION_CACHE_PREFIX: application_cache_prefix,
+            APPLICATION_CACHE_VERSION: crypto.randomUUID()
         })), "utf8");
     }
 }

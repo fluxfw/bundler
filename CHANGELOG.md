@@ -6,6 +6,13 @@ Changes:
 
 \-
 
+## v2022-12-08-1
+
+Changes:
+
+- Default `service-worker-template.mjs`
+- `metadata.json`
+
 ## v2022-11-24-1
 
 Changes:
