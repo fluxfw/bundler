@@ -1,4 +1,4 @@
-const { APPLICATION_CACHE_FILES, APPLICATION_CACHE_PREFIX, APPLICATION_CACHE_VERSION } = { /*%DATA%*/ };
+const { APPLICATION_CACHE_FILES, APPLICATION_CACHE_PREFIX, APPLICATION_CACHE_VERSION, SKIP_WAITING } = { /*%DATA%*/ };
 
 const APPLICATION_CACHE_NAME = `${APPLICATION_CACHE_PREFIX}${APPLICATION_CACHE_VERSION}`;
 
@@ -107,9 +107,11 @@ async function installEvent() {
  * @returns {Promise<void>}
  */
 async function messageEvent(data) {
-    if (data === "skipWaiting") {
-        await skipWaiting();
+    if (data !== SKIP_WAITING) {
+        return;
     }
+
+    await skipWaiting();
 }
 
 addEventListener("activate", e => {

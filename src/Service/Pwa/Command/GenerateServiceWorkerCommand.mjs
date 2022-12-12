@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+import { SKIP_WAITING } from "../../../../../flux-pwa-api/src/Adapter/Pwa/SKIP_WAITING.mjs";
 import { dirname, join, relative } from "node:path/posix";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 
@@ -53,7 +54,8 @@ export class GenerateServiceWorkerCommand {
                 })(web_root)
             ],
             APPLICATION_CACHE_PREFIX: application_cache_prefix,
-            APPLICATION_CACHE_VERSION: crypto.randomUUID()
+            APPLICATION_CACHE_VERSION: crypto.randomUUID(),
+            SKIP_WAITING
         })), "utf8");
     }
 }
