@@ -51,15 +51,19 @@ export class GenerateIndexHtmlsCommand {
             );
         }
 
+        const manifest_json_file_dot_pos = manifest_json_file.lastIndexOf(".");
+        const index_html_file_dot_pos = index_html_file.lastIndexOf(".");
+        const web_manifest_json_file_dot_pos = web_manifest_json_file.lastIndexOf(".");
+
         for (const language of [
             ...(localization_folder !== null ? Object.keys((await this.#localization_api.getLanguages()).all) : null) ?? [],
             ""
         ]) {
             const manifest = await this.#json_api.importJson(
-                language !== "" ? `${manifest_json_file.substring(0, manifest_json_file.lastIndexOf("."))}-${language}.json` : manifest_json_file
+                language !== "" ? `${manifest_json_file.substring(0, manifest_json_file_dot_pos)}-${language}${manifest_json_file.substring(manifest_json_file_dot_pos)}` : manifest_json_file
             );
 
-            await writeFile(language !== "" ? `${index_html_file.substring(0, index_html_file.lastIndexOf("."))}-${language}.html` : index_html_file, `<!DOCTYPE html>
+            await writeFile(language !== "" ? `${index_html_file.substring(0, index_html_file_dot_pos)}-${language}${index_html_file.substring(index_html_file_dot_pos)}` : index_html_file, `<!DOCTYPE html>
 <html${language !== "" ? ` dir="${this.#escapeHtml(
                 manifest.dir ?? null
             )}" lang="${this.#escapeHtml(
@@ -96,7 +100,7 @@ export class GenerateIndexHtmlsCommand {
                 manifest.description ?? null
             )}" name="description">
         <link href="${this.#escapeHtml(
-                language !== "" ? `${web_manifest_json_file.substring(0, web_manifest_json_file.lastIndexOf("."))}-${language}.json` : web_manifest_json_file
+                language !== "" ? `${web_manifest_json_file.substring(0, web_manifest_json_file_dot_pos)}-${language}${web_manifest_json_file.substring(web_manifest_json_file_dot_pos)}` : web_manifest_json_file
             )}" rel="manifest">` : ""}
         <script src="${this.#escapeHtml(
                 web_index_mjs_file

@@ -49,6 +49,8 @@ export class GenerateManifestJsonsCommand {
             localization_folder
         );
 
+        const manifest_json_file_dot_pos = manifest_json_file.lastIndexOf(".");
+
         for (const language of Object.keys((await this.#localization_api.getLanguages()).all)) {
             const localized_manifest = structuredClone(manifest);
 
@@ -80,7 +82,7 @@ export class GenerateManifestJsonsCommand {
                 language
             );
 
-            await writeFile(`${manifest_json_file.substring(0, manifest_json_file.lastIndexOf("."))}-${language}.json`, `${JSON.stringify(localized_manifest, null, 4)}
+            await writeFile(`${manifest_json_file.substring(0, manifest_json_file_dot_pos)}-${language}${manifest_json_file.substring(manifest_json_file_dot_pos)}`, `${JSON.stringify(localized_manifest, null, 4)}
 `);
         }
     }
