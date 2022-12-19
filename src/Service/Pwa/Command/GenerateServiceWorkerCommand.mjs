@@ -44,7 +44,9 @@ export class GenerateServiceWorkerCommand {
                         const _stat = await stat(_file);
 
                         if (_stat.isDirectory()) {
-                            files.push(...await scanFiles(_file));
+                            files.push(...await scanFiles(
+                                _file
+                            ));
                         } else {
                             files.push(relative(web_root, _file));
                         }
