@@ -32,7 +32,7 @@ export class GenerateServiceWorkerCommand {
         await writeFile(service_worker_mjs_file, "", "utf8");
 
         await writeFile(service_worker_mjs_file, (await readFile(service_worker_template_mjs_file ?? join(__dirname, "..", "..", "..", "Adapter", "service-worker-template.mjs"), "utf8")).replaceAll("{ /*%DATA%*/ }", JSON.stringify({
-            ...data ?? {},
+            ...data,
             APPLICATION_CACHE_FILES: [
                 "",
                 ...await (async function scanFiles(folder) {
