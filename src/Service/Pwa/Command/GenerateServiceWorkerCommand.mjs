@@ -53,7 +53,9 @@ export class GenerateServiceWorkerCommand {
                     }
 
                     return files;
-                })(web_root)
+                })(
+                    web_root
+                )
             ],
             APPLICATION_CACHE_PREFIX: application_cache_prefix,
             APPLICATION_CACHE_VERSION: crypto.randomUUID(),
