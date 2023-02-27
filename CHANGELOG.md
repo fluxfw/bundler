@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-02-27-1
+
+Changes:
+
+- Remove legacy fallbacks
+
 ## v2023-02-09-1
 
 Changes:

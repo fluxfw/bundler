@@ -29,7 +29,7 @@ export class GenerateServiceWorkerCommand {
      * @returns {Promise<void>}
      */
     async generateServiceWorker(web_root, service_worker_mjs_file, application_cache_prefix, service_worker_template_mjs_file = null, data = null) {
-        await writeFile(service_worker_mjs_file, "", "utf8");
+        await writeFile(service_worker_mjs_file, "");
 
         await writeFile(service_worker_mjs_file, (await readFile(service_worker_template_mjs_file ?? join(__dirname, "..", "..", "..", "Adapter", "service-worker-template.mjs"), "utf8")).replaceAll("{ /*%DATA%*/ }", JSON.stringify({
             ...data,
@@ -60,6 +60,6 @@ export class GenerateServiceWorkerCommand {
             APPLICATION_CACHE_PREFIX: application_cache_prefix,
             APPLICATION_CACHE_VERSION: crypto.randomUUID(),
             SKIP_WAITING
-        })), "utf8");
+        })));
     }
 }

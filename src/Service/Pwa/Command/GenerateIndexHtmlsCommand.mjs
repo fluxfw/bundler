@@ -108,7 +108,7 @@ export class GenerateIndexHtmlsCommand {
     </head>
     <body></body>
 </html>
-`, "utf8");
+`);
         }
     }
 
