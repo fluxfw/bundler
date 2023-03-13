@@ -6,6 +6,14 @@ Changes:
 
 \-
 
+## v2023-03-13-1
+
+Changes:
+
+- Use native `fetch` in fetch service worker event when possible
+- Message service worker event data object
+- Validate message service worker origin
+
 ## v2023-02-27-1
 
 Changes:

@@ -61,17 +61,10 @@ async function activateEvent() {
 
 /**
  * @param {Request} request
+ * @param {string} path
  * @returns {Promise<Response>}
  */
-async function fetchEvent(request) {
-    const url = new URL(request.url);
-
-    if (url.origin !== location.origin || !url.pathname.startsWith(__dirname_path)) {
-        return Response.error();
-    }
-
-    const path = url.pathname.substring(__dirname_path.length - 1);
-
+async function fetchEventAsync(request, path) {
     if (path.startsWith("/api/") || path === "/api") {
         return fetch(request);
     }
@@ -79,6 +72,7 @@ async function fetchEvent(request) {
     const cache_response = await getApplicationCacheResponse(
         request
     );
+
     if (cache_response !== null) {
         return cache_response;
     }
@@ -96,6 +90,30 @@ async function fetchEvent(request) {
 }
 
 /**
+ * @param {FetchEvent} e
+ * @returns {void}
+ */
+function fetchEvent(e) {
+    const url = new URL(e.request.url);
+
+    if (url.origin !== location.origin || !url.pathname.startsWith(__dirname_path)) {
+        e.respondWith(Response.error());
+        return;
+    }
+
+    const path = url.pathname.substring(__dirname_path.length - 1);
+
+    if (path.startsWith("/api/") || path === "/api") {
+        return;
+    }
+
+    e.respondWith(fetchEventAsync(
+        e.request,
+        path
+    ));
+}
+
+/**
  * @returns {Promise<void>}
  */
 async function installEvent() {
@@ -103,15 +121,26 @@ async function installEvent() {
 }
 
 /**
- * @param {*} data
+ * @param {ExtendableMessageEvent} e
  * @returns {Promise<void>}
  */
-async function messageEvent(data) {
-    if (data !== SKIP_WAITING) {
+async function messageEvent(e) {
+    if (e.origin !== location.origin) {
         return;
     }
 
-    await skipWaiting();
+    if ((e.data ?? null) === null || typeof e.data !== "object") {
+        return;
+    }
+
+    switch (e.data.type) {
+        case SKIP_WAITING:
+            await skipWaiting();
+            break;
+
+        default:
+            break;
+    }
 }
 
 addEventListener("activate", e => {
@@ -119,9 +148,9 @@ addEventListener("activate", e => {
 });
 
 addEventListener("fetch", e => {
-    e.respondWith(fetchEvent(
-        e.request
-    ));
+    fetchEvent(
+        e
+    );
 });
 
 addEventListener("install", e => {
@@ -130,6 +159,6 @@ addEventListener("install", e => {
 
 addEventListener("message", e => {
     messageEvent(
-        e.data
+        e
     );
 });
