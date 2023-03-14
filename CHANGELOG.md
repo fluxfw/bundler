@@ -6,6 +6,13 @@ Changes:
 
 \-
 
+## v2023-03-14-2
+
+Changes:
+
+- Service worker generator file filter
+- Optional ignore jsdoc files
+
 ## v2023-03-14-1
 
 Changes:

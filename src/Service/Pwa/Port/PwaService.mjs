@@ -1,3 +1,4 @@
+/** @typedef {import("../../../Adapter/Pwa/fileFilter.mjs").fileFilter} fileFilter */
 /** @typedef {import("../../../../../flux-json-api/src/Adapter/Api/JsonApi.mjs").JsonApi} JsonApi */
 /** @typedef {import("../../../../../flux-localization-api/src/Adapter/Api/LocalizationApi.mjs").LocalizationApi} LocalizationApi */
 
@@ -85,16 +86,20 @@ export class PwaService {
      * @param {string} application_cache_prefix
      * @param {string | null} service_worker_template_mjs_file
      * @param {{[key: string]: *} | null} data
+     * @param {fileFilter | null} filter_filter
+     * @param {boolean | null} ignore_jsdoc_files
      * @returns {Promise<void>}
      */
-    async generateServiceWorker(web_root, service_worker_mjs_file, application_cache_prefix, service_worker_template_mjs_file = null, data = null) {
+    async generateServiceWorker(web_root, service_worker_mjs_file, application_cache_prefix, service_worker_template_mjs_file = null, data = null, filter_filter = null, ignore_jsdoc_files = null) {
         await (await import("../Command/GenerateServiceWorkerCommand.mjs")).GenerateServiceWorkerCommand.new()
             .generateServiceWorker(
                 web_root,
                 service_worker_mjs_file,
                 application_cache_prefix,
                 service_worker_template_mjs_file,
-                data
+                data,
+                filter_filter,
+                ignore_jsdoc_files
             );
     }
 }
