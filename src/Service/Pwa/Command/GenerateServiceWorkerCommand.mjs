@@ -61,6 +61,7 @@ export class GenerateServiceWorkerCommand {
                             if (filter_filter !== null && !filter_filter(
                                 web_root_file
                             )) {
+                                console.debug(`Ignore ${web_root_file} from service worker (File filter)`);
                                 continue;
                             }
 
@@ -72,6 +73,7 @@ export class GenerateServiceWorkerCommand {
                                 const code = await readFile(_file, "utf8");
 
                                 if (code.includes("* @typedef {") && code.replaceAll(/\/\*[\s\S]*?\*\//g, "").trim() === "") {
+                                    console.debug(`Ignore ${web_root_file} from service worker (JSDoc file)`);
                                     continue;
                                 }
                             }

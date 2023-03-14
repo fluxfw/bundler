@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-03-14-3
+
+Changes:
+
+- Log ignored files
+
 ## v2023-03-14-2
 
 Changes:
