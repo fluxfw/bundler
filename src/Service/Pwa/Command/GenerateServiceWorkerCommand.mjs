@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { SKIP_WAITING } from "../../../../../flux-pwa-api/src/Adapter/Pwa/SKIP_WAITING.mjs";
-import { dirname, join, relative } from "node:path/posix";
+import { dirname, extname, join, relative } from "node:path/posix";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -48,6 +48,18 @@ export class GenerateServiceWorkerCommand {
                                 _file
                             ));
                         } else {
+                            if ([
+                                ".cjs",
+                                ".js",
+                                ".mjs"
+                            ].includes(extname(_file))) {
+                                const code = await readFile(_file, "utf8");
+
+                                if (code.includes("* @typedef {") && code.replaceAll(/\/\*[\s\S]*?\*\//g, "").trim() === "") {
+                                    continue;
+                                }
+                            }
+
                             files.push(relative(web_root, _file));
                         }
                     }

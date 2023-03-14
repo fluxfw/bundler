@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-03-14-1
+
+Changes:
+
+- Ignore files with comments only on service worker generator (JSDoc)
+
 ## v2023-03-13-1
 
 Changes:
