@@ -1,37 +1,28 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 
-/** @typedef {import("../../../../../flux-json-api/src/Adapter/Api/JsonApi.mjs").JsonApi} JsonApi */
 /** @typedef {import("../../../../../flux-localization-api/src/Adapter/Api/LocalizationApi.mjs").LocalizationApi} LocalizationApi */
 
 export class GenerateManifestJsonsCommand {
-    /**
-     * @type {JsonApi}
-     */
-    #json_api;
     /**
      * @type {LocalizationApi}
      */
     #localization_api;
 
     /**
-     * @param {JsonApi} json_api
      * @param {LocalizationApi} localization_api
      * @returns {GenerateManifestJsonsCommand}
      */
-    static new(json_api, localization_api) {
+    static new(localization_api) {
         return new this(
-            json_api,
             localization_api
         );
     }
 
     /**
-     * @param {JsonApi} json_api
      * @param {LocalizationApi} localization_api
      * @private
      */
-    constructor(json_api, localization_api) {
-        this.#json_api = json_api;
+    constructor(localization_api) {
         this.#localization_api = localization_api;
     }
 
@@ -41,9 +32,7 @@ export class GenerateManifestJsonsCommand {
      * @returns {Promise<void>}
      */
     async generateManifestJsons(manifest_json_file, localization_folder) {
-        const manifest = await this.#json_api.importJson(
-            manifest_json_file
-        );
+        const manifest = JSON.parse(await readFile(manifest_json_file, "utf8"));
 
         await this.#localization_api.addModule(
             localization_folder

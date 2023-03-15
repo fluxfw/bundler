@@ -1,13 +1,8 @@
 /** @typedef {import("../fileFilter.mjs").fileFilter} fileFilter */
-/** @typedef {import("../../../../flux-json-api/src/Adapter/Api/JsonApi.mjs").JsonApi} JsonApi */
 /** @typedef {import("../../../../flux-localization-api/src/Adapter/Api/LocalizationApi.mjs").LocalizationApi} LocalizationApi */
 /** @typedef {import("../../Service/Pwa/Port/PwaService.mjs").PwaService} PwaService */
 
 export class PwaGeneratorApi {
-    /**
-     * @type {JsonApi}
-     */
-    #json_api;
     /**
      * @type {LocalizationApi | null}
      */
@@ -18,24 +13,20 @@ export class PwaGeneratorApi {
     #pwa_service = null;
 
     /**
-     * @param {JsonApi} json_api
      * @param {LocalizationApi | null} localization_api
      * @returns {PwaGeneratorApi}
      */
-    static new(json_api, localization_api = null) {
+    static new(localization_api = null) {
         return new this(
-            json_api,
             localization_api
         );
     }
 
     /**
-     * @param {JsonApi} json_api
      * @param {LocalizationApi | null} localization_api
      * @private
      */
-    constructor(json_api, localization_api) {
-        this.#json_api = json_api;
+    constructor(localization_api) {
         this.#localization_api = localization_api;
     }
 
@@ -96,7 +87,6 @@ export class PwaGeneratorApi {
      */
     async #getPwaService() {
         this.#pwa_service ??= (await import("../../Service/Pwa/Port/PwaService.mjs")).PwaService.new(
-            this.#json_api,
             this.#localization_api
         );
 

@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-03-15-1
+
+Changes:
+
+- Remove `flux-json-api`
+
 ## v2023-03-14-3
 
 Changes:

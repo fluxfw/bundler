@@ -1,38 +1,29 @@
-import { writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path/posix";
+import { readFile, writeFile } from "node:fs/promises";
 
-/** @typedef {import("../../../../../flux-json-api/src/Adapter/Api/JsonApi.mjs").JsonApi} JsonApi */
 /** @typedef {import("../../../../../flux-localization-api/src/Adapter/Api/LocalizationApi.mjs").LocalizationApi} LocalizationApi */
 
 export class GenerateIndexHtmlsCommand {
-    /**
-     * @type {JsonApi}
-     */
-    #json_api;
     /**
      * @type {LocalizationApi}
      */
     #localization_api;
 
     /**
-     * @param {JsonApi} json_api
      * @param {LocalizationApi} localization_api
      * @returns {GenerateIndexHtmlsCommand}
      */
-    static new(json_api, localization_api) {
+    static new(localization_api) {
         return new this(
-            json_api,
             localization_api
         );
     }
 
     /**
-     * @param {JsonApi} json_api
      * @param {LocalizationApi} localization_api
      * @private
      */
-    constructor(json_api, localization_api) {
-        this.#json_api = json_api;
+    constructor(localization_api) {
         this.#localization_api = localization_api;
     }
 
@@ -59,9 +50,7 @@ export class GenerateIndexHtmlsCommand {
             ...(localization_folder !== null ? Object.keys((await this.#localization_api.getLanguages()).all) : null) ?? [],
             ""
         ]) {
-            const manifest = await this.#json_api.importJson(
-                language !== "" ? `${manifest_json_file.substring(0, manifest_json_file_dot_pos)}-${language}${manifest_json_file.substring(manifest_json_file_dot_pos)}` : manifest_json_file
-            );
+            const manifest = JSON.parse(await readFile(language !== "" ? `${manifest_json_file.substring(0, manifest_json_file_dot_pos)}-${language}${manifest_json_file.substring(manifest_json_file_dot_pos)}` : manifest_json_file, "utf8"));
 
             await writeFile(language !== "" ? `${index_html_file.substring(0, index_html_file_dot_pos)}-${language}${index_html_file.substring(index_html_file_dot_pos)}` : index_html_file, `<!DOCTYPE html>
 <html${language !== "" ? ` dir="${this.#escapeHtml(
