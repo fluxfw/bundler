@@ -1,1 +1,3 @@
-# flux-pwa-generator-api
+# flux-pwa-generator
+
+Generate PWA

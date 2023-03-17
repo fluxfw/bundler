@@ -6,6 +6,13 @@ Changes:
 
 \-
 
+## v2023-03-17-1
+
+Changes:
+
+- Simplify
+- Renamed to `flux-pwa-generator`
+
 ## v2023-03-15-1
 
 Changes:

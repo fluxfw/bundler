@@ -1,9 +1,9 @@
 import { fileURLToPath } from "node:url";
-import { SKIP_WAITING } from "../../../../../flux-pwa-api/src/Adapter/Pwa/SKIP_WAITING.mjs";
+import { SKIP_WAITING } from "../../../../flux-pwa-api/src/Pwa/SKIP_WAITING.mjs";
 import { dirname, extname, join, relative } from "node:path/posix";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 
-/** @typedef {import("../../../Adapter/Pwa/fileFilter.mjs").fileFilter} fileFilter */
+/** @typedef {import("../fileFilter.mjs").fileFilter} fileFilter */
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -35,7 +35,7 @@ export class GenerateServiceWorkerCommand {
     async generateServiceWorker(web_root, service_worker_mjs_file, application_cache_prefix, service_worker_template_mjs_file = null, data = null, filter_filter = null, ignore_jsdoc_files = null) {
         await writeFile(service_worker_mjs_file, "");
 
-        await writeFile(service_worker_mjs_file, (await readFile(service_worker_template_mjs_file ?? join(__dirname, "..", "..", "..", "Adapter", "service-worker-template.mjs"), "utf8")).replaceAll("{ /*%DATA%*/ }", JSON.stringify({
+        await writeFile(service_worker_mjs_file, (await readFile(service_worker_template_mjs_file ?? join(__dirname, "..", "service-worker-template.mjs"), "utf8")).replaceAll("{ /*%DATA%*/ }", JSON.stringify({
             ...data,
             APPLICATION_CACHE_FILES: [
                 ...filter_filter !== null && !filter_filter(

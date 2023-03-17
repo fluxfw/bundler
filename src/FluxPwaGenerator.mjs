@@ -1,33 +1,33 @@
-/** @typedef {import("../fileFilter.mjs").fileFilter} fileFilter */
-/** @typedef {import("../../../../flux-localization-api/src/Adapter/Api/LocalizationApi.mjs").LocalizationApi} LocalizationApi */
-/** @typedef {import("../../Service/Pwa/Port/PwaService.mjs").PwaService} PwaService */
+/** @typedef {import("./Pwa/fileFilter.mjs").fileFilter} fileFilter */
+/** @typedef {import("../../flux-localization-api/src/FluxLocalizationApi.mjs").FluxLocalizationApi} FluxLocalizationApi */
+/** @typedef {import("./Pwa/Port/PwaService.mjs").PwaService} PwaService */
 
-export class PwaGeneratorApi {
+export class FluxPwaGenerator {
     /**
-     * @type {LocalizationApi | null}
+     * @type {FluxLocalizationApi | null}
      */
-    #localization_api;
+    #flux_localization_api;
     /**
      * @type {PwaService | null}
      */
     #pwa_service = null;
 
     /**
-     * @param {LocalizationApi | null} localization_api
-     * @returns {PwaGeneratorApi}
+     * @param {FluxLocalizationApi | null} flux_localization_api
+     * @returns {FluxPwaGenerator}
      */
-    static new(localization_api = null) {
+    static new(flux_localization_api = null) {
         return new this(
-            localization_api
+            flux_localization_api
         );
     }
 
     /**
-     * @param {LocalizationApi | null} localization_api
+     * @param {FluxLocalizationApi | null} flux_localization_api
      * @private
      */
-    constructor(localization_api) {
-        this.#localization_api = localization_api;
+    constructor(flux_localization_api) {
+        this.#flux_localization_api = flux_localization_api;
     }
 
     /**
@@ -86,8 +86,8 @@ export class PwaGeneratorApi {
      * @returns {Promise<PwaService>}
      */
     async #getPwaService() {
-        this.#pwa_service ??= (await import("../../Service/Pwa/Port/PwaService.mjs")).PwaService.new(
-            this.#localization_api
+        this.#pwa_service ??= (await import("./Pwa/Port/PwaService.mjs")).PwaService.new(
+            this.#flux_localization_api
         );
 
         return this.#pwa_service;

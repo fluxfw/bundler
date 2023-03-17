@@ -1,30 +1,30 @@
 import { dirname, join } from "node:path/posix";
 import { readFile, writeFile } from "node:fs/promises";
 
-/** @typedef {import("../../../../../flux-localization-api/src/Adapter/Api/LocalizationApi.mjs").LocalizationApi} LocalizationApi */
+/** @typedef {import("../../../../flux-localization-api/src/FluxLocalizationApi.mjs").FluxLocalizationApi} FluxLocalizationApi */
 
 export class GenerateIndexHtmlsCommand {
     /**
-     * @type {LocalizationApi}
+     * @type {FluxLocalizationApi}
      */
-    #localization_api;
+    #flux_localization_api;
 
     /**
-     * @param {LocalizationApi} localization_api
+     * @param {FluxLocalizationApi} flux_localization_api
      * @returns {GenerateIndexHtmlsCommand}
      */
-    static new(localization_api) {
+    static new(flux_localization_api) {
         return new this(
-            localization_api
+            flux_localization_api
         );
     }
 
     /**
-     * @param {LocalizationApi} localization_api
+     * @param {FluxLocalizationApi} flux_localization_api
      * @private
      */
-    constructor(localization_api) {
-        this.#localization_api = localization_api;
+    constructor(flux_localization_api) {
+        this.#flux_localization_api = flux_localization_api;
     }
 
     /**
@@ -37,7 +37,7 @@ export class GenerateIndexHtmlsCommand {
      */
     async generateIndexHtmls(manifest_json_file, index_html_file, web_manifest_json_file, web_index_mjs_file, localization_folder = null) {
         if (localization_folder !== null) {
-            await this.#localization_api.addModule(
+            await this.#flux_localization_api.addModule(
                 localization_folder
             );
         }
@@ -47,7 +47,7 @@ export class GenerateIndexHtmlsCommand {
         const web_manifest_json_file_dot_pos = web_manifest_json_file.lastIndexOf(".");
 
         for (const language of [
-            ...(localization_folder !== null ? Object.keys((await this.#localization_api.getLanguages()).all) : null) ?? [],
+            ...(localization_folder !== null ? Object.keys((await this.#flux_localization_api.getLanguages()).all) : null) ?? [],
             ""
         ]) {
             const manifest = JSON.parse(await readFile(language !== "" ? `${manifest_json_file.substring(0, manifest_json_file_dot_pos)}-${language}${manifest_json_file.substring(manifest_json_file_dot_pos)}` : manifest_json_file, "utf8"));
