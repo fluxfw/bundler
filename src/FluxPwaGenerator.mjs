@@ -1,16 +1,11 @@
 /** @typedef {import("./Pwa/fileFilter.mjs").fileFilter} fileFilter */
 /** @typedef {import("../../flux-localization-api/src/FluxLocalizationApi.mjs").FluxLocalizationApi} FluxLocalizationApi */
-/** @typedef {import("./Pwa/Port/PwaService.mjs").PwaService} PwaService */
 
 export class FluxPwaGenerator {
     /**
      * @type {FluxLocalizationApi | null}
      */
     #flux_localization_api;
-    /**
-     * @type {PwaService | null}
-     */
-    #pwa_service = null;
 
     /**
      * @param {FluxLocalizationApi | null} flux_localization_api
@@ -39,13 +34,20 @@ export class FluxPwaGenerator {
      * @returns {Promise<void>}
      */
     async generateIndexHtmls(manifest_json_file, index_html_file, web_manifest_json_file, web_index_mjs_file, localization_folder = null) {
-        await (await this.#getPwaService()).generateIndexHtmls(
-            manifest_json_file,
-            index_html_file,
-            web_manifest_json_file,
-            web_index_mjs_file,
-            localization_folder
-        );
+        if (this.#flux_localization_api === null) {
+            throw new Error("Missing FluxLocalizationApi");
+        }
+
+        await (await import("./Pwa/GenerateIndexHtmls.mjs")).GenerateIndexHtmls.new(
+            this.#flux_localization_api
+        )
+            .generateIndexHtmls(
+                manifest_json_file,
+                index_html_file,
+                web_manifest_json_file,
+                web_index_mjs_file,
+                localization_folder
+            );
     }
 
     /**
@@ -54,10 +56,17 @@ export class FluxPwaGenerator {
      * @returns {Promise<void>}
      */
     async generateManifestJsons(manifest_json_file, localization_folder) {
-        await (await this.#getPwaService()).generateManifestJsons(
-            manifest_json_file,
-            localization_folder
-        );
+        if (this.#flux_localization_api === null) {
+            throw new Error("Missing FluxLocalizationApi");
+        }
+
+        await (await import("./Pwa/GenerateManifestJsons.mjs")).GenerateManifestJsons.new(
+            this.#flux_localization_api
+        )
+            .generateManifestJsons(
+                manifest_json_file,
+                localization_folder
+            );
     }
 
     /**
@@ -71,25 +80,15 @@ export class FluxPwaGenerator {
      * @returns {Promise<void>}
      */
     async generateServiceWorker(web_root, service_worker_mjs_file, application_cache_prefix, service_worker_template_mjs_file = null, data = null, filter_filter = null, ignore_jsdoc_files = null) {
-        await (await this.#getPwaService()).generateServiceWorker(
-            web_root,
-            service_worker_mjs_file,
-            application_cache_prefix,
-            service_worker_template_mjs_file,
-            data,
-            filter_filter,
-            ignore_jsdoc_files
-        );
-    }
-
-    /**
-     * @returns {Promise<PwaService>}
-     */
-    async #getPwaService() {
-        this.#pwa_service ??= (await import("./Pwa/Port/PwaService.mjs")).PwaService.new(
-            this.#flux_localization_api
-        );
-
-        return this.#pwa_service;
+        await (await import("./Pwa/GenerateServiceWorker.mjs")).GenerateServiceWorker.new()
+            .generateServiceWorker(
+                web_root,
+                service_worker_mjs_file,
+                application_cache_prefix,
+                service_worker_template_mjs_file,
+                data,
+                filter_filter,
+                ignore_jsdoc_files
+            );
     }
 }

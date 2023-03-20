@@ -1,9 +1,9 @@
 import { dirname, join } from "node:path/posix";
 import { readFile, writeFile } from "node:fs/promises";
 
-/** @typedef {import("../../../../flux-localization-api/src/FluxLocalizationApi.mjs").FluxLocalizationApi} FluxLocalizationApi */
+/** @typedef {import("../../../flux-localization-api/src/FluxLocalizationApi.mjs").FluxLocalizationApi} FluxLocalizationApi */
 
-export class GenerateIndexHtmlsCommand {
+export class GenerateIndexHtmls {
     /**
      * @type {FluxLocalizationApi}
      */
@@ -11,7 +11,7 @@ export class GenerateIndexHtmlsCommand {
 
     /**
      * @param {FluxLocalizationApi} flux_localization_api
-     * @returns {GenerateIndexHtmlsCommand}
+     * @returns {GenerateIndexHtmls}
      */
     static new(flux_localization_api) {
         return new this(

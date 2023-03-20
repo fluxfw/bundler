@@ -1,8 +1,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 
-/** @typedef {import("../../../../flux-localization-api/src/FluxLocalizationApi.mjs").FluxLocalizationApi} FluxLocalizationApi */
+/** @typedef {import("../../../flux-localization-api/src/FluxLocalizationApi.mjs").FluxLocalizationApi} FluxLocalizationApi */
 
-export class GenerateManifestJsonsCommand {
+export class GenerateManifestJsons {
     /**
      * @type {FluxLocalizationApi}
      */
@@ -10,7 +10,7 @@ export class GenerateManifestJsonsCommand {
 
     /**
      * @param {FluxLocalizationApi} flux_localization_api
-     * @returns {GenerateManifestJsonsCommand}
+     * @returns {GenerateManifestJsons}
      */
     static new(flux_localization_api) {
         return new this(
