@@ -37,7 +37,7 @@ export class GenerateIndexHtmls {
      */
     async generateIndexHtmls(manifest_json_file, index_html_file, web_manifest_json_file, web_index_mjs_file, localization_folder = null) {
         if (localization_folder !== null) {
-            await this.#flux_localization_api.addModule(
+            this.#flux_localization_api.addModule(
                 localization_folder
             );
         }

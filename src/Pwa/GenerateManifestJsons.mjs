@@ -34,7 +34,7 @@ export class GenerateManifestJsons {
     async generateManifestJsons(manifest_json_file, localization_folder) {
         const manifest = JSON.parse(await readFile(manifest_json_file, "utf8"));
 
-        await this.#flux_localization_api.addModule(
+        this.#flux_localization_api.addModule(
             localization_folder
         );
 
