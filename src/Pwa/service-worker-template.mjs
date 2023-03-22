@@ -2,11 +2,11 @@ const { APPLICATION_CACHE_FILES, APPLICATION_CACHE_PREFIX, APPLICATION_CACHE_VER
 
 const APPLICATION_CACHE_NAME = `${APPLICATION_CACHE_PREFIX}${APPLICATION_CACHE_VERSION}`;
 
-//const __dirname = import.meta.url.substring(0, import.meta.url.lastIndexOf("/"));
-const __dirname = `${location.href.substring(0, location.href.lastIndexOf("/"))}`;
+//const service_worker_path = import.meta.url.substring(0, import.meta.url.lastIndexOf("/"));
+const service_worker_path = `${location.href.substring(0, location.href.lastIndexOf("/"))}`;
 
-const ___dirname_path = `${new URL(__dirname).pathname}`;
-const __dirname_path = ___dirname_path !== "/" ? `${___dirname_path}/` : "/";
+const _service_worker_path = `${new URL(service_worker_path).pathname}`;
+const __service_worker_path = _service_worker_path !== "/" ? `${_service_worker_path}/` : "/";
 
 let application_cache = null;
 
@@ -23,7 +23,7 @@ async function getApplicationCache() {
  * @returns {Promise<void>}
  */
 async function cacheApplicationFiles() {
-    (await getApplicationCache()).addAll(APPLICATION_CACHE_FILES.map(request => `${__dirname}/${request}`));
+    (await getApplicationCache()).addAll(APPLICATION_CACHE_FILES.map(request => `${service_worker_path}/${request}`));
 }
 
 /**
@@ -96,12 +96,12 @@ async function fetchEventAsync(request, path) {
 function fetchEvent(e) {
     const url = new URL(e.request.url);
 
-    if (url.origin !== location.origin || !url.pathname.startsWith(__dirname_path)) {
+    if (url.origin !== location.origin || !url.pathname.startsWith(__service_worker_path)) {
         e.respondWith(Response.error());
         return;
     }
 
-    const path = url.pathname.substring(__dirname_path.length - 1);
+    const path = url.pathname.substring(__service_worker_path.length - 1);
 
     if (path.startsWith("/api/") || path === "/api") {
         return;
