@@ -28,15 +28,6 @@ async function cacheApplicationFiles() {
 
 /**
  * @param {Request} request
- * @param {Response} response
- * @returns {Promise<void>}
- */
-async function cacheApplicationResponse(request, response) {
-    (await getApplicationCache()).put(request, response);
-}
-
-/**
- * @param {Request} request
  * @returns {Promise<Response | null>}
  */
 async function getApplicationCacheResponse(request) {
@@ -77,16 +68,7 @@ async function fetchEventAsync(request, path) {
         return cache_response;
     }
 
-    const response = await fetch(request);
-
-    if (response.ok) {
-        cacheApplicationResponse(
-            request,
-            response.clone()
-        );
-    }
-
-    return response;
+    return fetch(request);
 }
 
 /**

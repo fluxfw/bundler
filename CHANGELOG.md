@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-04-11-1
+
+Changes:
+
+- Remove fetch cache fallback
+
 ## v2023-03-22-1
 
 Changes:
