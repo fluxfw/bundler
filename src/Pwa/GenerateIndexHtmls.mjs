@@ -5,22 +5,22 @@ import { readFile, writeFile } from "node:fs/promises";
 
 export class GenerateIndexHtmls {
     /**
-     * @type {FluxLocalizationApi}
+     * @type {FluxLocalizationApi | null}
      */
     #flux_localization_api;
 
     /**
-     * @param {FluxLocalizationApi} flux_localization_api
+     * @param {FluxLocalizationApi | null} flux_localization_api
      * @returns {GenerateIndexHtmls}
      */
-    static new(flux_localization_api) {
+    static new(flux_localization_api = null) {
         return new this(
             flux_localization_api
         );
     }
 
     /**
-     * @param {FluxLocalizationApi} flux_localization_api
+     * @param {FluxLocalizationApi | null} flux_localization_api
      * @private
      */
     constructor(flux_localization_api) {
@@ -37,6 +37,10 @@ export class GenerateIndexHtmls {
      */
     async generateIndexHtmls(manifest_json_file, index_html_file, web_manifest_json_file, web_index_mjs_file, localization_folder = null) {
         if (localization_folder !== null) {
+            if (this.#flux_localization_api === null) {
+                throw new Error("Missing FluxLocalizationApi");
+            }
+
             this.#flux_localization_api.addModule(
                 localization_folder
             );

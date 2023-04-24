@@ -34,10 +34,6 @@ export class FluxPwaGenerator {
      * @returns {Promise<void>}
      */
     async generateIndexHtmls(manifest_json_file, index_html_file, web_manifest_json_file, web_index_mjs_file, localization_folder = null) {
-        if (this.#flux_localization_api === null) {
-            throw new Error("Missing FluxLocalizationApi");
-        }
-
         await (await import("./Pwa/GenerateIndexHtmls.mjs")).GenerateIndexHtmls.new(
             this.#flux_localization_api
         )
