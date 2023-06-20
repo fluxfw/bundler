@@ -28,14 +28,13 @@ export class GenerateIndexHtmls {
     }
 
     /**
-     * @param {string} manifest_json_file
+     * @param {string} index_template_html_file
      * @param {string} index_html_file
-     * @param {string} web_manifest_json_file
-     * @param {string} web_index_mjs_file
+     * @param {string} manifest_json_file
      * @param {string | null} localization_folder
      * @returns {Promise<void>}
      */
-    async generateIndexHtmls(manifest_json_file, index_html_file, web_manifest_json_file, web_index_mjs_file, localization_folder = null) {
+    async generateIndexHtmls(index_template_html_file, index_html_file, manifest_json_file, localization_folder = null) {
         if (localization_folder !== null) {
             if (this.#flux_localization_api === null) {
                 throw new Error("Missing FluxLocalizationApi");
@@ -45,6 +44,28 @@ export class GenerateIndexHtmls {
                 localization_folder
             );
         }
+
+        let index_html = await readFile(index_template_html_file, "utf8");
+
+        const manifest_placeholder = "%manifest%";
+        const manifest_href_placeholder = " href=\"";
+        const manifest_placeholder_pos = index_html.indexOf(manifest_placeholder);
+        if (manifest_placeholder_pos === -1) {
+            throw new Error("Missing manifest");
+        }
+        const manifest_href_pos = index_html.substring(manifest_placeholder_pos).indexOf(" href=\"");
+        if (manifest_href_pos === -1) {
+            throw new Error("Missing manifest");
+        }
+        const manifest_href_end_pos = index_html.substring(manifest_placeholder_pos + manifest_href_pos + manifest_href_placeholder.length).indexOf("\"");
+        if (manifest_href_end_pos === -1) {
+            throw new Error("Missing manifest");
+        }
+        const web_manifest_json_file = index_html.substring(manifest_placeholder_pos + manifest_href_pos + manifest_href_placeholder.length, manifest_placeholder_pos + manifest_href_pos + manifest_href_placeholder.length + manifest_href_end_pos);
+        if (web_manifest_json_file === "") {
+            throw new Error("Missing manifest");
+        }
+        index_html = `${index_html.substring(0, manifest_placeholder_pos)}${index_html.substring(manifest_placeholder_pos + manifest_placeholder.length, manifest_placeholder_pos + manifest_href_pos + manifest_href_placeholder.length)}${manifest_placeholder}${index_html.substring(manifest_placeholder_pos + manifest_href_pos + manifest_href_placeholder.length + manifest_href_end_pos)}`;
 
         const manifest_json_file_dot_pos = manifest_json_file.lastIndexOf(".");
         const index_html_file_dot_pos = index_html_file.lastIndexOf(".");
@@ -56,52 +77,68 @@ export class GenerateIndexHtmls {
         ]) {
             const manifest = JSON.parse(await readFile(language !== "" ? `${manifest_json_file.substring(0, manifest_json_file_dot_pos)}-${language}${manifest_json_file.substring(manifest_json_file_dot_pos)}` : manifest_json_file, "utf8"));
 
-            await writeFile(language !== "" ? `${index_html_file.substring(0, index_html_file_dot_pos)}-${language}${index_html_file.substring(index_html_file_dot_pos)}` : index_html_file, `<!DOCTYPE html>
-<html${language !== "" && (manifest.dir ?? "") !== "" ? ` dir="${this.#escapeHtml(
-                manifest.dir
-            )}"` : ""}${language !== "" && (manifest.lang ?? "") !== "" ? ` lang="${this.#escapeHtml(
-                manifest.lang
-            )}"` : ""}>
-    <head>
-        <meta charset="UTF-8" />${language !== "" && (manifest.name ?? "") !== "" ? `
-        <title>${this.#escapeHtml(
-                manifest.name
-            )}</title>` : ""}
-        <meta content="${this.#escapeHtml(
-                Object.entries({
-                    "initial-scale": "1.0",
-                    "maximum-scale": "1.0",
-                    "minimum-scale": "1.0",
-                    "user-scalable": "no"
-                }).map(([
-                    key,
-                    value
-                ]) => `${key}=${value}`).join(",")
-            )}" name="viewport">
-        ${(manifest.icons ?? []).map(icon => `<link href="${this.#escapeHtml(
-                this.#fixUrl(
-                    web_manifest_json_file,
-                    icon.src ?? null
-                )
-            )}" rel="icon" sizes="${this.#escapeHtml(
-                icon.sizes ?? null
-            )}" type="${this.#escapeHtml(
-                icon.type ?? null
-            )}">`).join(`
-        `)}${language !== "" && (manifest.description ?? "") !== "" ? `
-        <meta content="${this.#escapeHtml(
-                manifest.description
-            )}" name="description">` : ""}${language !== "" ? `
-        <link href="${this.#escapeHtml(
-                language !== "" ? `${web_manifest_json_file.substring(0, web_manifest_json_file_dot_pos)}-${language}${web_manifest_json_file.substring(web_manifest_json_file_dot_pos)}` : web_manifest_json_file
-            )}" rel="manifest">` : ""}
-        <script src="${this.#escapeHtml(
-                web_index_mjs_file
-            )}" type="module"></script>
-    </head>
-    <body></body>
-</html>
-`);
+            let localized_index_html = index_html;
+
+            for (const key of [
+                "description",
+                "dir",
+                "icons",
+                "lang",
+                "manifest",
+                "name",
+                "short_name"
+            ]) {
+                const placeholder_key = `%${key}%`;
+
+                if (key === "icons" ? (manifest.icons ?? []).length > 0 : language !== "" && (key === "manifest" ? true : (manifest[key] ?? "") !== "")) {
+                    switch (key) {
+                        case "icons":
+                            localized_index_html = localized_index_html.split("\n").map(line => {
+                                if (!line.includes(placeholder_key)) {
+                                    return line;
+                                }
+
+                                const icons_line = line.replace(placeholder_key, "");
+
+                                return manifest.icons.map(icon => {
+                                    let icon_line = icons_line;
+
+                                    for (const icon_key of [
+                                        "sizes",
+                                        "src",
+                                        "type"
+                                    ]) {
+                                        icon_line = icon_line.replaceAll(`%${icon_key}%`, this.#escapeHtml(
+                                            icon_key === "src" ? this.#fixUrl(
+                                                web_manifest_json_file,
+                                                icon.src ?? null
+                                            ) : icon[icon_key] ?? null
+                                        ));
+                                    }
+
+                                    return icon_line;
+                                }).join("\n");
+                            }).join("\n");
+                            break;
+
+                        case "manifest":
+                            localized_index_html = localized_index_html.replaceAll(placeholder_key, this.#escapeHtml(
+                                language !== "" ? `${web_manifest_json_file.substring(0, web_manifest_json_file_dot_pos)}-${language}${web_manifest_json_file.substring(web_manifest_json_file_dot_pos)}` : web_manifest_json_file
+                            ));
+                            break;
+
+                        default:
+                            localized_index_html = localized_index_html.replaceAll(placeholder_key, this.#escapeHtml(
+                                manifest[key]
+                            ));
+                            break;
+                    }
+                } else {
+                    localized_index_html = localized_index_html.replaceAll(` ${key}="${placeholder_key}"`, "").split("\n").filter(line => !line.includes(placeholder_key)).join("\n");
+                }
+            }
+
+            await writeFile(language !== "" ? `${index_html_file.substring(0, index_html_file_dot_pos)}-${language}${index_html_file.substring(index_html_file_dot_pos)}` : index_html_file, localized_index_html);
         }
     }
 

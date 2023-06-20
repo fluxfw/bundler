@@ -60,9 +60,7 @@ export class GenerateManifestJsons {
                 "name",
                 "short_name"
             ]) {
-                localized_manifest[key] ??= "";
-
-                if (localization_folder !== null && localized_manifest_language !== "" && localized_manifest[key] !== "") {
+                if (localization_folder !== null && localized_manifest_language !== "" && (localized_manifest[key] ?? "") !== "") {
                     localized_manifest[key] = await this.#flux_localization_api.translate(
                         localized_manifest[key],
                         null,
@@ -77,8 +75,6 @@ export class GenerateManifestJsons {
                     null,
                     localized_manifest_language
                 )).direction;
-            } else {
-                localized_manifest.dir ??= "";
             }
 
             localized_manifest.lang = localized_manifest_language;

@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-06-20-2
+
+Changes:
+
+- `index-template.html`
+
 ## v2023-06-20-1
 
 Changes:

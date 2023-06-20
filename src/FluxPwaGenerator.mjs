@@ -26,22 +26,20 @@ export class FluxPwaGenerator {
     }
 
     /**
-     * @param {string} manifest_json_file
+     * @param {string} index_template_html_file
      * @param {string} index_html_file
-     * @param {string} web_manifest_json_file
-     * @param {string} web_index_mjs_file
+     * @param {string} manifest_json_file
      * @param {string | null} localization_folder
      * @returns {Promise<void>}
      */
-    async generateIndexHtmls(manifest_json_file, index_html_file, web_manifest_json_file, web_index_mjs_file, localization_folder = null) {
+    async generateIndexHtmls(index_template_html_file, index_html_file, manifest_json_file, localization_folder = null) {
         await (await import("./Pwa/GenerateIndexHtmls.mjs")).GenerateIndexHtmls.new(
             this.#flux_localization_api
         )
             .generateIndexHtmls(
-                manifest_json_file,
+                index_template_html_file,
                 index_html_file,
-                web_manifest_json_file,
-                web_index_mjs_file,
+                manifest_json_file,
                 localization_folder
             );
     }
