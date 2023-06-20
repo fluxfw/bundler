@@ -57,15 +57,15 @@ export class GenerateIndexHtmls {
             const manifest = JSON.parse(await readFile(language !== "" ? `${manifest_json_file.substring(0, manifest_json_file_dot_pos)}-${language}${manifest_json_file.substring(manifest_json_file_dot_pos)}` : manifest_json_file, "utf8"));
 
             await writeFile(language !== "" ? `${index_html_file.substring(0, index_html_file_dot_pos)}-${language}${index_html_file.substring(index_html_file_dot_pos)}` : index_html_file, `<!DOCTYPE html>
-<html${language !== "" ? ` dir="${this.#escapeHtml(
-                manifest.dir ?? null
-            )}" lang="${this.#escapeHtml(
-                manifest.lang ?? null
+<html${language !== "" && (manifest.dir ?? "") !== "" ? ` dir="${this.#escapeHtml(
+                manifest.dir
+            )}"` : ""}${language !== "" && (manifest.lang ?? "") !== "" ? ` lang="${this.#escapeHtml(
+                manifest.lang
             )}"` : ""}>
     <head>
-        <meta charset="UTF-8" />${language !== "" ? `
+        <meta charset="UTF-8" />${language !== "" && (manifest.name ?? "") !== "" ? `
         <title>${this.#escapeHtml(
-                manifest.name ?? null
+                manifest.name
             )}</title>` : ""}
         <meta content="${this.#escapeHtml(
                 Object.entries({
@@ -88,10 +88,10 @@ export class GenerateIndexHtmls {
             )}" type="${this.#escapeHtml(
                 icon.type ?? null
             )}">`).join(`
-        `)}${language !== "" ? `
+        `)}${language !== "" && (manifest.description ?? "") !== "" ? `
         <meta content="${this.#escapeHtml(
-                manifest.description ?? null
-            )}" name="description">
+                manifest.description
+            )}" name="description">` : ""}${language !== "" ? `
         <link href="${this.#escapeHtml(
                 language !== "" ? `${web_manifest_json_file.substring(0, web_manifest_json_file_dot_pos)}-${language}${web_manifest_json_file.substring(web_manifest_json_file_dot_pos)}` : web_manifest_json_file
             )}" rel="manifest">` : ""}
@@ -110,7 +110,7 @@ export class GenerateIndexHtmls {
      * @returns {string}
      */
     #escapeHtml(string = null) {
-        if (string === null || string === "") {
+        if ((string ?? "") === "") {
             return "";
         }
 
@@ -123,7 +123,7 @@ export class GenerateIndexHtmls {
      * @returns {string}
      */
     #fixUrl(web_manifest_json_file, url = null) {
-        if (url === null || url === "") {
+        if ((url ?? "") === "") {
             return "";
         }
 

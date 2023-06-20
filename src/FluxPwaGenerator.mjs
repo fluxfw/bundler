@@ -47,19 +47,17 @@ export class FluxPwaGenerator {
     }
 
     /**
+     * @param {string} manifest_template_json_file
      * @param {string} manifest_json_file
-     * @param {string} localization_folder
+     * @param {string | null} localization_folder
      * @returns {Promise<void>}
      */
-    async generateManifestJsons(manifest_json_file, localization_folder) {
-        if (this.#flux_localization_api === null) {
-            throw new Error("Missing FluxLocalizationApi");
-        }
-
+    async generateManifestJsons(manifest_template_json_file, manifest_json_file, localization_folder = null) {
         await (await import("./Pwa/GenerateManifestJsons.mjs")).GenerateManifestJsons.new(
             this.#flux_localization_api
         )
             .generateManifestJsons(
+                manifest_template_json_file,
                 manifest_json_file,
                 localization_folder
             );

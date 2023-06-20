@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-06-20-1
+
+Changes:
+
+- `manifest-template.json`
+
 ## v2023-04-24-1
 
 Changes:
