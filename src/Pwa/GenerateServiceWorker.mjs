@@ -60,7 +60,7 @@ export class GenerateServiceWorker {
                             if (filter_filter !== null && !filter_filter(
                                 web_root_file
                             )) {
-                                console.log(`Ignore ${web_root_file} from service worker (File filter)`);
+                                console.log(`- Ignore ${web_root_file} from application cache files (File filter)`);
                                 continue;
                             }
 
@@ -72,7 +72,7 @@ export class GenerateServiceWorker {
                                 const code = await readFile(_file, "utf8");
 
                                 if (code.includes("* @typedef {") && code.replaceAll(/\/\*[\s\S]*?\*\//g, "").trim() === "") {
-                                    console.log(`Ignore ${web_root_file} from service worker (JSDoc file)`);
+                                    console.log(`- Ignore ${web_root_file} from application cache files (JSDoc file)`);
                                     continue;
                                 }
                             }
