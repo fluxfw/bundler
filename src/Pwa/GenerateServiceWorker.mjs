@@ -30,6 +30,8 @@ export class GenerateServiceWorker {
      * @returns {Promise<void>}
      */
     async generateServiceWorker(service_worker_template_mjs_file, service_worker_mjs_file, web_root, application_cache_prefix, data = null, filter_filter = null, ignore_jsdoc_files = null) {
+        console.log(`Generate ${service_worker_mjs_file}`);
+
         await writeFile(service_worker_mjs_file, "");
 
         await writeFile(service_worker_mjs_file, (await readFile(service_worker_template_mjs_file, "utf8")).replaceAll("{ /*%DATA%*/ }", JSON.stringify({
@@ -58,7 +60,7 @@ export class GenerateServiceWorker {
                             if (filter_filter !== null && !filter_filter(
                                 web_root_file
                             )) {
-                                console.debug(`Ignore ${web_root_file} from service worker (File filter)`);
+                                console.log(`Ignore ${web_root_file} from service worker (File filter)`);
                                 continue;
                             }
 
@@ -70,7 +72,7 @@ export class GenerateServiceWorker {
                                 const code = await readFile(_file, "utf8");
 
                                 if (code.includes("* @typedef {") && code.replaceAll(/\/\*[\s\S]*?\*\//g, "").trim() === "") {
-                                    console.debug(`Ignore ${web_root_file} from service worker (JSDoc file)`);
+                                    console.log(`Ignore ${web_root_file} from service worker (JSDoc file)`);
                                     continue;
                                 }
                             }

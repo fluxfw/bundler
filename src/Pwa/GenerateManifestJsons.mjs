@@ -51,6 +51,10 @@ export class GenerateManifestJsons {
             ...(localization_folder !== null ? Object.keys((await this.#flux_localization_api.getLanguages()).all) : null) ?? [],
             ""
         ]) {
+            const localized_manifest_json_file = language !== "" ? `${manifest_json_file.substring(0, manifest_json_file_dot_pos)}-${language}${manifest_json_file.substring(manifest_json_file_dot_pos)}` : manifest_json_file;
+
+            console.log(`Generate ${localized_manifest_json_file}`);
+
             const localized_manifest = structuredClone(manifest);
 
             const localized_manifest_language = language !== "" ? language : manifest.lang ?? "";
@@ -79,7 +83,7 @@ export class GenerateManifestJsons {
 
             localized_manifest.lang = localized_manifest_language;
 
-            await writeFile(language !== "" ? `${manifest_json_file.substring(0, manifest_json_file_dot_pos)}-${language}${manifest_json_file.substring(manifest_json_file_dot_pos)}` : manifest_json_file, `${JSON.stringify(localized_manifest, null, 4)}
+            await writeFile(localized_manifest_json_file, `${JSON.stringify(localized_manifest, null, 4)}
 `);
         }
     }
