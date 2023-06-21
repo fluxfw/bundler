@@ -1,0 +1,31 @@
+{
+    "background_color": "#ffffff",
+    "categories": [],
+    "description": "",
+    "dir": "ltr",
+    "display": "browser",
+    "icons": [
+        {
+            "sizes": "any",
+            "src": "../Icon/icon.svg",
+            "type": "image/svg+xml"
+        },
+        {
+            "sizes": "1024x1024",
+            "src": "../Icon/icon.webp",
+            "type": "image/webp"
+        },
+        {
+            "sizes": "32x32",
+            "src": "../Icon/icon.ico",
+            "type": "image/x-icon"
+        }
+    ],
+    "id": "",
+    "lang": "en",
+    "name": "",
+    "scope": "..",
+    "short_name": "",
+    "start_url": "..",
+    "theme_color": "#000000"
+}

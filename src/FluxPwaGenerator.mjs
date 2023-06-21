@@ -62,22 +62,22 @@ export class FluxPwaGenerator {
     }
 
     /**
-     * @param {string} web_root
+     * @param {string} service_worker_template_mjs_file
      * @param {string} service_worker_mjs_file
+     * @param {string} web_root
      * @param {string} application_cache_prefix
-     * @param {string | null} service_worker_template_mjs_file
      * @param {{[key: string]: *} | null} data
      * @param {fileFilter | null} filter_filter
      * @param {boolean | null} ignore_jsdoc_files
      * @returns {Promise<void>}
      */
-    async generateServiceWorker(web_root, service_worker_mjs_file, application_cache_prefix, service_worker_template_mjs_file = null, data = null, filter_filter = null, ignore_jsdoc_files = null) {
+    async generateServiceWorker(service_worker_template_mjs_file, service_worker_mjs_file, web_root, application_cache_prefix, data = null, filter_filter = null, ignore_jsdoc_files = null) {
         await (await import("./Pwa/GenerateServiceWorker.mjs")).GenerateServiceWorker.new()
             .generateServiceWorker(
-                web_root,
-                service_worker_mjs_file,
-                application_cache_prefix,
                 service_worker_template_mjs_file,
+                service_worker_mjs_file,
+                web_root,
+                application_cache_prefix,
                 data,
                 filter_filter,
                 ignore_jsdoc_files

@@ -47,7 +47,7 @@ export class GenerateIndexHtmls {
 
         let index_html = await readFile(index_template_html_file, "utf8");
 
-        const manifest_placeholder = "%manifest%";
+        const manifest_placeholder = "%MANIFEST%";
         const manifest_href_placeholder = " href=\"";
         const manifest_placeholder_pos = index_html.indexOf(manifest_placeholder);
         if (manifest_placeholder_pos === -1) {
@@ -88,7 +88,7 @@ export class GenerateIndexHtmls {
                 "name",
                 "short_name"
             ]) {
-                const placeholder_key = `%${key}%`;
+                const placeholder_key = `%${key.toUpperCase()}%`;
 
                 if (key === "icons" ? (manifest.icons ?? []).length > 0 : language !== "" && (key === "manifest" ? true : (manifest[key] ?? "") !== "")) {
                     switch (key) {
@@ -108,7 +108,7 @@ export class GenerateIndexHtmls {
                                         "src",
                                         "type"
                                     ]) {
-                                        icon_line = icon_line.replaceAll(`%${icon_key}%`, this.#escapeHtml(
+                                        icon_line = icon_line.replaceAll(`%ICON_${icon_key.toUpperCase()}%`, this.#escapeHtml(
                                             icon_key === "src" ? this.#fixUrl(
                                                 web_manifest_json_file,
                                                 icon.src ?? null
