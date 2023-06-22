@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { copyFile, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path/posix";
 
@@ -18,10 +19,11 @@ export class GenerateIcons {
     }
 
     /**
+     * @param {string} fallback_icon_template_svg_file
      * @param {string} manifest_json_file
      * @returns {Promise<void>}
      */
-    async generateIcons(manifest_json_file) {
+    async generateIcons(fallback_icon_template_svg_file, manifest_json_file) {
         const manifest = JSON.parse(await readFile(manifest_json_file, "utf8"));
 
         for (const icon of manifest.icons ?? []) {
@@ -29,7 +31,10 @@ export class GenerateIcons {
                 throw new Error("Invalid icon");
             }
 
-            const icon_template_svg_file = join(dirname(manifest_json_file), `${icon.src.substring(0, icon.src.lastIndexOf("."))}-template.svg`);
+            let icon_template_svg_file = join(dirname(manifest_json_file), `${icon.src.substring(0, icon.src.lastIndexOf("."))}-template.svg`);
+            if (!existsSync(icon_template_svg_file)) {
+                icon_template_svg_file = fallback_icon_template_svg_file;
+            }
 
             const icon_file = join(dirname(icon_template_svg_file), icon.src);
 
