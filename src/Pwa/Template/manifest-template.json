@@ -17,7 +17,7 @@
         },
         {
             "sizes": "32x32",
-            "src": "../Icon/icon.ico",
+            "src": "../favicon.ico",
             "type": "image/x-icon"
         }
     ],
