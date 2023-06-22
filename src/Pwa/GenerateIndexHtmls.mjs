@@ -104,7 +104,7 @@ export class GenerateIndexHtmls {
 
                                 const icons_line = line.replace(placeholder_key, "");
 
-                                return manifest.icons.map(icon => {
+                                return manifest.icons.filter(icon => (icon.purpose ?? "") === "" || icon.purpose === "any").map(icon => {
                                     let icon_line = icons_line;
 
                                     for (const icon_key of [

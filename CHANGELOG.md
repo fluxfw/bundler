@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-06-22-3
+
+Changes:
+
+- Ignore alternative `purposes` icons in `index.html`
+
 ## v2023-06-22-2
 
 Changes:
