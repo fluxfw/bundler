@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-06-22-1
+
+Changes:
+
+- Generate icons
+
 ## v2023-06-21-3
 
 Changes:
