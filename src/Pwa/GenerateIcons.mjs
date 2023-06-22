@@ -18,17 +18,18 @@ export class GenerateIcons {
     }
 
     /**
-     * @param {string} icon_template_svg_file
      * @param {string} manifest_json_file
      * @returns {Promise<void>}
      */
-    async generateIcons(icon_template_svg_file, manifest_json_file) {
+    async generateIcons(manifest_json_file) {
         const manifest = JSON.parse(await readFile(manifest_json_file, "utf8"));
 
         for (const icon of manifest.icons ?? []) {
             if ((icon.src ?? "") === "") {
                 throw new Error("Invalid icon");
             }
+
+            const icon_template_svg_file = join(dirname(manifest_json_file), `${icon.src.substring(0, icon.src.lastIndexOf("."))}-template.svg`);
 
             const icon_file = join(dirname(icon_template_svg_file), icon.src);
 

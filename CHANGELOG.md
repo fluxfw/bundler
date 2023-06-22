@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-06-22-4
+
+Changes:
+
+- Dynamic `icon-template.svg`
+
 ## v2023-06-22-3
 
 Changes:

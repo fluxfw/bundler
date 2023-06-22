@@ -26,14 +26,12 @@ export class FluxPwaGenerator {
     }
 
     /**
-     * @param {string} icon_template_svg_file
      * @param {string} manifest_json_file
      * @returns {Promise<void>}
      */
-    async generateIcons(icon_template_svg_file, manifest_json_file) {
+    async generateIcons(manifest_json_file) {
         await (await import("./Pwa/GenerateIcons.mjs")).GenerateIcons.new()
             .generateIcons(
-                icon_template_svg_file,
                 manifest_json_file
             );
     }
