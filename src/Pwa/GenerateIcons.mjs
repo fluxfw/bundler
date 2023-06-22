@@ -50,9 +50,9 @@ export class GenerateIcons {
             }
 
             execFileSync("magick", [
+                "-background",
+                "none",
                 icon_template_svg_file,
-                "-alpha",
-                "set",
                 ...icon.sizes !== "any" ? [
                     "-filter",
                     "point",
