@@ -44,7 +44,7 @@ export class DeleteEmptyFolders {
                     continue;
                 }
 
-                folders.push(await scanFolders(
+                folders.push(...await scanFolders(
                     _file
                 ));
             }
@@ -55,7 +55,9 @@ export class DeleteEmptyFolders {
         )).filter(([
             ,
             count
-        ]) => count === 0);
+        ]) => count === 0).map(([
+            folder
+        ]) => folder);
 
         if (empty_folders.length === 0) {
             return;
@@ -66,9 +68,7 @@ export class DeleteEmptyFolders {
             console.log("Delete empty folders:");
         }
 
-        for (const root_folder of empty_folders) {
-            const folder = join(root, root_folder);
-
+        for (const folder of empty_folders) {
             if (!existsSync(folder)) {
                 continue;
             }
