@@ -29,17 +29,17 @@ export class FluxPwaGenerator {
 
     /**
      * @param {string} web_root
-     * @param {fileFilter | null} filter_filter
+     * @param {fileFilter | null} file_filter
      * @param {boolean | null} ignore_jsdoc_files
      * @returns {Promise<void>}
      */
-    async deleteIgnoresFiles(web_root, filter_filter = null, ignore_jsdoc_files = null) {
+    async deleteIgnoresFiles(web_root, file_filter = null, ignore_jsdoc_files = null) {
         await (await import("./Pwa/DeleteIgnoresFiles.mjs")).DeleteIgnoresFiles.new(
             this
         )
             .deleteIgnoresFiles(
                 web_root,
-                filter_filter,
+                file_filter,
                 ignore_jsdoc_files
             );
     }
@@ -103,11 +103,11 @@ export class FluxPwaGenerator {
      * @param {string} web_root
      * @param {string} application_cache_prefix
      * @param {{[key: string]: *} | null} data
-     * @param {fileFilter | null} filter_filter
+     * @param {fileFilter | null} file_filter
      * @param {boolean | null} ignore_jsdoc_files
      * @returns {Promise<void>}
      */
-    async generateServiceWorker(service_worker_template_mjs_file, service_worker_mjs_file, web_root, application_cache_prefix, data = null, filter_filter = null, ignore_jsdoc_files = null) {
+    async generateServiceWorker(service_worker_template_mjs_file, service_worker_mjs_file, web_root, application_cache_prefix, data = null, file_filter = null, ignore_jsdoc_files = null) {
         await (await import("./Pwa/GenerateServiceWorker.mjs")).GenerateServiceWorker.new(
             this
         )
@@ -117,7 +117,7 @@ export class FluxPwaGenerator {
                 web_root,
                 application_cache_prefix,
                 data,
-                filter_filter,
+                file_filter,
                 ignore_jsdoc_files
             );
     }
@@ -135,15 +135,15 @@ export class FluxPwaGenerator {
 
     /**
      * @param {string} web_root
-     * @param {fileFilter | null} filter_filter
+     * @param {fileFilter | null} file_filter
      * @param {boolean | null} ignore_jsdoc_files
      * @returns {Promise<string[][]>}
      */
-    async scanFiles(web_root, filter_filter = null, ignore_jsdoc_files = null) {
+    async scanFiles(web_root, file_filter = null, ignore_jsdoc_files = null) {
         return (await import("./Pwa/ScanFiles.mjs")).ScanFiles.new()
             .scanFiles(
                 web_root,
-                filter_filter,
+                file_filter,
                 ignore_jsdoc_files
             );
     }

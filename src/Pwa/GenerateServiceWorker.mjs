@@ -34,11 +34,11 @@ export class GenerateServiceWorker {
      * @param {string} web_root
      * @param {string} application_cache_prefix
      * @param {{[key: string]: *} | null} data
-     * @param {fileFilter | null} filter_filter
+     * @param {fileFilter | null} file_filter
      * @param {boolean | null} ignore_jsdoc_files
      * @returns {Promise<void>}
      */
-    async generateServiceWorker(service_worker_template_mjs_file, service_worker_mjs_file, web_root, application_cache_prefix, data = null, filter_filter = null, ignore_jsdoc_files = null) {
+    async generateServiceWorker(service_worker_template_mjs_file, service_worker_mjs_file, web_root, application_cache_prefix, data = null, file_filter = null, ignore_jsdoc_files = null) {
         console.log(`Generate ${service_worker_mjs_file}`);
 
         await writeFile(service_worker_mjs_file, "");
@@ -49,7 +49,7 @@ export class GenerateServiceWorker {
             ignored_jsdoc_files
         ] = await this.#flux_pwa_generator.scanFiles(
             web_root,
-            filter_filter,
+            file_filter,
             ignore_jsdoc_files
         );
 
@@ -64,7 +64,7 @@ export class GenerateServiceWorker {
         await writeFile(service_worker_mjs_file, (await readFile(service_worker_template_mjs_file, "utf8")).replaceAll("{ /*%DATA%*/ }", JSON.stringify({
             ...data,
             APPLICATION_CACHE_FILES: [
-                ...filter_filter !== null && !filter_filter(
+                ...file_filter !== null && !file_filter(
                     ""
                 ) ? [] : [
                     ""

@@ -20,11 +20,11 @@ export class ScanFiles {
 
     /**
      * @param {string} web_root
-     * @param {fileFilter | null} filter_filter
+     * @param {fileFilter | null} file_filter
      * @param {boolean | null} ignore_jsdoc_files
      * @returns {Promise<string[][]>}
      */
-    async scanFiles(web_root, filter_filter = null, ignore_jsdoc_files = null) {
+    async scanFiles(web_root, file_filter = null, ignore_jsdoc_files = null) {
         return (async function scanFiles(folder) {
             const files = [
                 [],
@@ -49,7 +49,7 @@ export class ScanFiles {
                 } else {
                     const web_root_file = relative(web_root, _file);
 
-                    if (filter_filter !== null && !filter_filter(
+                    if (file_filter !== null && !file_filter(
                         web_root_file
                     )) {
                         files[1].push(web_root_file);

@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { join } from "node:path/posix";
 import { unlink } from "node:fs/promises";
 
@@ -30,27 +31,33 @@ export class DeleteIgnoresFiles {
 
     /**
      * @param {string} web_root
-     * @param {fileFilter | null} filter_filter
+     * @param {fileFilter | null} file_filter
      * @param {boolean | null} ignore_jsdoc_files
      * @returns {Promise<void>}
      */
-    async deleteIgnoresFiles(web_root, filter_filter = null, ignore_jsdoc_files = null) {
+    async deleteIgnoresFiles(web_root, file_filter = null, ignore_jsdoc_files = null) {
         const [
             ,
             ignored_file_filter_files,
             ignored_jsdoc_files
         ] = await this.#flux_pwa_generator.scanFiles(
             web_root,
-            filter_filter,
+            file_filter,
             ignore_jsdoc_files
         );
 
         for (const file of ignored_file_filter_files) {
+            if (!existsSync(file)) {
+                continue;
+            }
             console.log(`- Delete ignored ${file} (File filter)`);
             await unlink(join(web_root, file));
         }
 
         for (const file of ignored_jsdoc_files) {
+            if (!existsSync(file)) {
+                continue;
+            }
             console.log(`- Delete ignored ${file} (JSDoc file)`);
             await unlink(join(web_root, file));
         }
