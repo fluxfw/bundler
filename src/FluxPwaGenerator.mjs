@@ -1,3 +1,12 @@
+import { DeleteEmptyFolders } from "./Pwa/DeleteEmptyFolders.mjs";
+import { DeleteExcludedFiles } from "./Pwa/DeleteExcludedFiles.mjs";
+import { GenerateIcons } from "./Pwa/GenerateIcons.mjs";
+import { GenerateIndexHtmls } from "./Pwa/GenerateIndexHtmls.mjs";
+import { GenerateManifestJsons } from "./Pwa/GenerateManifestJsons.mjs";
+import { GenerateServiceWorker } from "./Pwa/GenerateServiceWorker.mjs";
+import { GetManifest } from "./Pwa/GetManifest.mjs";
+import { ScanFiles } from "./Pwa/ScanFiles.mjs";
+
 /** @typedef {import("./Pwa/fileFilter.mjs").fileFilter} fileFilter */
 /** @typedef {import("./Pwa/getIconTemplateFile.mjs").getIconTemplateFile} getIconTemplateFile */
 /** @typedef {import("../../flux-localization-api/src/FluxLocalizationApi.mjs").FluxLocalizationApi} FluxLocalizationApi */
@@ -32,7 +41,7 @@ export class FluxPwaGenerator {
      * @returns {Promise<void>}
      */
     async deleteEmptyFolders(root) {
-        await (await import("./Pwa/DeleteEmptyFolders.mjs")).DeleteEmptyFolders.new(
+        await DeleteEmptyFolders.new(
             this
         )
             .deleteEmptyFolders(
@@ -47,7 +56,7 @@ export class FluxPwaGenerator {
      * @returns {Promise<void>}
      */
     async deleteExcludedFiles(root, file_filter = null, exclude_jsdoc_files = null) {
-        await (await import("./Pwa/DeleteExcludedFiles.mjs")).DeleteExcludedFiles.new(
+        await DeleteExcludedFiles.new(
             this
         )
             .deleteExcludedFiles(
@@ -63,7 +72,7 @@ export class FluxPwaGenerator {
      * @returns {Promise<void>}
      */
     async generateIcons(get_icon_template_file, manifest_json_file) {
-        await (await import("./Pwa/GenerateIcons.mjs")).GenerateIcons.new(
+        await GenerateIcons.new(
             this
         )
             .generateIcons(
@@ -80,7 +89,7 @@ export class FluxPwaGenerator {
      * @returns {Promise<void>}
      */
     async generateIndexHtmls(index_template_html_file, index_html_file, manifest_json_file, localization_folder = null) {
-        await (await import("./Pwa/GenerateIndexHtmls.mjs")).GenerateIndexHtmls.new(
+        await GenerateIndexHtmls.new(
             this,
             this.#flux_localization_api
         )
@@ -99,7 +108,7 @@ export class FluxPwaGenerator {
      * @returns {Promise<void>}
      */
     async generateManifestJsons(manifest_template_json_file, manifest_json_file, localization_folder = null) {
-        await (await import("./Pwa/GenerateManifestJsons.mjs")).GenerateManifestJsons.new(
+        await GenerateManifestJsons.new(
             this,
             this.#flux_localization_api
         )
@@ -121,7 +130,7 @@ export class FluxPwaGenerator {
      * @returns {Promise<void>}
      */
     async generateServiceWorker(service_worker_template_mjs_file, service_worker_mjs_file, root, application_cache_prefix, data = null, file_filter = null, exclude_jsdoc_files = null) {
-        await (await import("./Pwa/GenerateServiceWorker.mjs")).GenerateServiceWorker.new(
+        await GenerateServiceWorker.new(
             this
         )
             .generateServiceWorker(
@@ -140,7 +149,7 @@ export class FluxPwaGenerator {
      * @returns {Promise<Manifest>}
      */
     async getManifest(manifest_json_file) {
-        return (await import("./Pwa/GetManifest.mjs")).GetManifest.new()
+        return GetManifest.new()
             .getManifest(
                 manifest_json_file
             );
@@ -153,7 +162,7 @@ export class FluxPwaGenerator {
      * @returns {Promise<string[][]>}
      */
     async scanFiles(root, file_filter = null, exclude_jsdoc_files = null) {
-        return (await import("./Pwa/ScanFiles.mjs")).ScanFiles.new()
+        return ScanFiles.new()
             .scanFiles(
                 root,
                 file_filter,
