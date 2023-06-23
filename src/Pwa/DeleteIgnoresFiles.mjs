@@ -46,20 +46,22 @@ export class DeleteIgnoresFiles {
             ignore_jsdoc_files
         );
 
-        for (const file of ignored_file_filter_files) {
+        for (const web_root_file of ignored_file_filter_files) {
+            const file = join(web_root, web_root_file);
             if (!existsSync(file)) {
                 continue;
             }
             console.log(`- Delete ignored ${file} (File filter)`);
-            await unlink(join(web_root, file));
+            await unlink(file);
         }
 
-        for (const file of ignored_jsdoc_files) {
+        for (const web_root_file of ignored_jsdoc_files) {
+            const file = join(web_root, web_root_file);
             if (!existsSync(file)) {
                 continue;
             }
             console.log(`- Delete ignored ${file} (JSDoc file)`);
-            await unlink(join(web_root, file));
+            await unlink(file);
         }
     }
 }

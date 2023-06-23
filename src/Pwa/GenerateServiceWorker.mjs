@@ -1,3 +1,4 @@
+import { join } from "node:path/posix";
 import { SKIP_WAITING } from "../../../flux-pwa-api/src/Pwa/SKIP_WAITING.mjs";
 import { readFile, writeFile } from "node:fs/promises";
 
@@ -53,11 +54,13 @@ export class GenerateServiceWorker {
             ignore_jsdoc_files
         );
 
-        for (const file of ignored_file_filter_files) {
+        for (const web_root_file of ignored_file_filter_files) {
+            const file = join(web_root, web_root_file);
             console.log(`- Ignore ${file} from application cache files (File filter)`);
         }
 
-        for (const file of ignored_jsdoc_files) {
+        for (const web_root_file of ignored_jsdoc_files) {
+            const file = join(web_root, web_root_file);
             console.log(`- Ignore ${file} from application cache files (JSDoc file)`);
         }
 
