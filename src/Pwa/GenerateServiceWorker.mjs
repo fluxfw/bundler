@@ -1,5 +1,4 @@
 import { join } from "node:path/posix";
-import { SKIP_WAITING } from "../../../flux-pwa-api/src/Pwa/SKIP_WAITING.mjs";
 import { readFile, writeFile } from "node:fs/promises";
 
 /** @typedef {import("./fileFilter.mjs").fileFilter} fileFilter */
@@ -86,7 +85,7 @@ export class GenerateServiceWorker {
             ],
             APPLICATION_CACHE_PREFIX: application_cache_prefix,
             APPLICATION_CACHE_VERSION: crypto.randomUUID(),
-            SKIP_WAITING
+            SKIP_WAITING: (await import("../../../flux-pwa-api/src/Pwa/SKIP_WAITING.mjs")).SKIP_WAITING
         })));
     }
 }
