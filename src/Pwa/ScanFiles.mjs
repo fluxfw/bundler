@@ -65,9 +65,9 @@ export class ScanFiles {
                             files[2].push(root_file);
                             continue;
                         }
-
-                        files[0].push(root_file);
                     }
+
+                    files[0].push(root_file);
                 }
             }
 
