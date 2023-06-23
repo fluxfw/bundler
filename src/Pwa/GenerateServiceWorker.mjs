@@ -1,22 +1,31 @@
 import { SKIP_WAITING } from "../../../flux-pwa-api/src/Pwa/SKIP_WAITING.mjs";
-import { extname, join, relative } from "node:path/posix";
-import { readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 
 /** @typedef {import("./fileFilter.mjs").fileFilter} fileFilter */
+/** @typedef {import("../FluxPwaGenerator.mjs").FluxPwaGenerator} FluxPwaGenerator */
 
 export class GenerateServiceWorker {
     /**
+     * @type {FluxPwaGenerator}
+     */
+    #flux_pwa_generator;
+
+    /**
+     * @param {FluxPwaGenerator} flux_pwa_generator
      * @returns {GenerateServiceWorker}
      */
-    static new() {
-        return new this();
+    static new(flux_pwa_generator) {
+        return new this(
+            flux_pwa_generator
+        );
     }
 
     /**
+     * @param {FluxPwaGenerator} flux_pwa_generator
      * @private
      */
-    constructor() {
-
+    constructor(flux_pwa_generator) {
+        this.#flux_pwa_generator = flux_pwa_generator;
     }
 
     /**
@@ -34,6 +43,24 @@ export class GenerateServiceWorker {
 
         await writeFile(service_worker_mjs_file, "");
 
+        const [
+            files,
+            ignored_file_filter_files,
+            ignored_jsdoc_files
+        ] = await this.#flux_pwa_generator.scanFiles(
+            web_root,
+            filter_filter,
+            ignore_jsdoc_files
+        );
+
+        for (const file of ignored_file_filter_files) {
+            console.log(`- Ignore ${file} from application cache files (File filter)`);
+        }
+
+        for (const file of ignored_jsdoc_files) {
+            console.log(`- Ignore ${file} from application cache files (JSDoc file)`);
+        }
+
         await writeFile(service_worker_mjs_file, (await readFile(service_worker_template_mjs_file, "utf8")).replaceAll("{ /*%DATA%*/ }", JSON.stringify({
             ...data,
             APPLICATION_CACHE_FILES: [
@@ -42,49 +69,7 @@ export class GenerateServiceWorker {
                 ) ? [] : [
                     ""
                 ],
-                ...await (async function scanFiles(folder) {
-                    const files = [];
-
-                    for (const file of await readdir(folder)) {
-                        const _file = join(folder, file);
-
-                        const _stat = await stat(_file);
-
-                        if (_stat.isDirectory()) {
-                            files.push(...await scanFiles(
-                                _file
-                            ));
-                        } else {
-                            const web_root_file = relative(web_root, _file);
-
-                            if (filter_filter !== null && !filter_filter(
-                                web_root_file
-                            )) {
-                                console.log(`- Ignore ${web_root_file} from application cache files (File filter)`);
-                                continue;
-                            }
-
-                            if ((ignore_jsdoc_files ?? true) && [
-                                ".cjs",
-                                ".js",
-                                ".mjs"
-                            ].includes(extname(_file))) {
-                                const code = await readFile(_file, "utf8");
-
-                                if (code.includes("* @typedef {") && code.replaceAll(/\/\*[\s\S]*?\*\//g, "").trim() === "") {
-                                    console.log(`- Ignore ${web_root_file} from application cache files (JSDoc file)`);
-                                    continue;
-                                }
-                            }
-
-                            files.push(web_root_file);
-                        }
-                    }
-
-                    return files;
-                })(
-                    web_root
-                )
+                ...files
             ],
             APPLICATION_CACHE_PREFIX: application_cache_prefix,
             APPLICATION_CACHE_VERSION: crypto.randomUUID(),

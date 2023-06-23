@@ -6,6 +6,14 @@ Changes:
 
 \-
 
+## v2023-06-23-1
+
+Changes:
+
+- `get_icon_template_file` callback
+- Remove requried svg icon template
+- `deleteIgnoresFiles`
+
 ## v2023-06-22-8
 
 Changes:

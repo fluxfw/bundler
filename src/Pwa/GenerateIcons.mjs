@@ -1,58 +1,70 @@
+import { copyFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { copyFile, readFile } from "node:fs/promises";
-import { dirname, join } from "node:path/posix";
+import { dirname, extname, join } from "node:path/posix";
+
+/** @typedef {import("../FluxPwaGenerator.mjs").FluxPwaGenerator} FluxPwaGenerator */
+/** @typedef {import("./getIconTemplateFile.mjs").getIconTemplateFile} getIconTemplateFile */
 
 export class GenerateIcons {
     /**
+     * @type {FluxPwaGenerator}
+     */
+    #flux_pwa_generator;
+
+    /**
+     * @param {FluxPwaGenerator} flux_pwa_generator
      * @returns {GenerateIcons}
      */
-    static new() {
-        return new this();
+    static new(flux_pwa_generator) {
+        return new this(
+            flux_pwa_generator
+        );
     }
 
     /**
+     * @param {FluxPwaGenerator} flux_pwa_generator
      * @private
      */
-    constructor() {
-
+    constructor(flux_pwa_generator) {
+        this.#flux_pwa_generator = flux_pwa_generator;
     }
 
     /**
-     * @param {string} fallback_icon_template_svg_file
+     * @param {getIconTemplateFile | string} get_icon_template_file
      * @param {string} manifest_json_file
      * @returns {Promise<void>}
      */
-    async generateIcons(fallback_icon_template_svg_file, manifest_json_file) {
-        const manifest = JSON.parse(await readFile(manifest_json_file, "utf8"));
+    async generateIcons(get_icon_template_file, manifest_json_file) {
+        const manifest = await this.#flux_pwa_generator.getManifest(
+            manifest_json_file
+        );
 
         for (const icon of manifest.icons ?? []) {
             if ((icon.src ?? "") === "") {
                 throw new Error("Invalid icon");
             }
 
-            let icon_template_svg_file = join(dirname(manifest_json_file), `${icon.src.substring(0, icon.src.lastIndexOf("."))}-template.svg`);
-            if (!existsSync(icon_template_svg_file)) {
-                icon_template_svg_file = fallback_icon_template_svg_file;
-            }
-
-            const icon_file = join(dirname(icon_template_svg_file), icon.src);
+            const icon_file = join(dirname(manifest_json_file), icon.src);
 
             console.log(`Generate ${icon_file}`);
+
+            const icon_template_file = typeof get_icon_template_file === "function" ? get_icon_template_file(
+                icon_file
+            ) : get_icon_template_file;
 
             if ((icon.sizes ?? "") === "" || (icon.sizes !== "any" && !/^\d+x\d+$/.test(icon.sizes)) || (icon.type ?? "") === "") {
                 throw new Error("Invalid icon");
             }
 
-            if (icon.type === "image/svg+xml" && icon.sizes === "any") {
-                await copyFile(icon_template_svg_file, icon_file);
+            if (icon.sizes === "any" && icon.type === "image/svg+xml" && extname(icon_template_file) === ".svg") {
+                await copyFile(icon_template_file, icon_file);
                 continue;
             }
 
             execFileSync("magick", [
                 "-background",
                 "none",
-                icon_template_svg_file,
+                icon_template_file,
                 ...icon.sizes !== "any" ? [
                     "-filter",
                     "point",
