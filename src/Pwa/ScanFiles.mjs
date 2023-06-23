@@ -19,12 +19,12 @@ export class ScanFiles {
     }
 
     /**
-     * @param {string} web_root
+     * @param {string} root
      * @param {fileFilter | null} file_filter
-     * @param {boolean | null} ignore_jsdoc_files
+     * @param {boolean | null} exclude_jsdoc_files
      * @returns {Promise<string[][]>}
      */
-    async scanFiles(web_root, file_filter = null, ignore_jsdoc_files = null) {
+    async scanFiles(root, file_filter = null, exclude_jsdoc_files = null) {
         return (async function scanFiles(folder) {
             const files = [
                 [],
@@ -35,9 +35,7 @@ export class ScanFiles {
             for (const file of await readdir(folder)) {
                 const _file = join(folder, file);
 
-                const _stat = await stat(_file);
-
-                if (_stat.isDirectory()) {
+                if ((await stat(_file)).isDirectory()) {
                     for (const [
                         i,
                         _files
@@ -47,16 +45,16 @@ export class ScanFiles {
                         files[i].push(..._files);
                     }
                 } else {
-                    const web_root_file = relative(web_root, _file);
+                    const root_file = relative(root, _file);
 
                     if (file_filter !== null && !file_filter(
-                        web_root_file
+                        root_file
                     )) {
-                        files[1].push(web_root_file);
+                        files[1].push(root_file);
                         continue;
                     }
 
-                    if ((ignore_jsdoc_files ?? true) && [
+                    if ((exclude_jsdoc_files ?? true) && [
                         ".cjs",
                         ".js",
                         ".mjs"
@@ -64,18 +62,18 @@ export class ScanFiles {
                         const code = await readFile(_file, "utf8");
 
                         if (code.includes("* @typedef {") && code.replaceAll(/\/\*[\s\S]*?\*\//g, "").trim() === "") {
-                            files[2].push(web_root_file);
+                            files[2].push(root_file);
                             continue;
                         }
 
-                        files[0].push(web_root_file);
+                        files[0].push(root_file);
                     }
                 }
             }
 
             return files;
         })(
-            web_root
+            root
         );
     }
 }

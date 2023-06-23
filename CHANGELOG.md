@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-06-23-4
+
+Changes:
+
+- `deleteEmptyFolders`
+
 ## v2023-06-23-3
 
 Changes:

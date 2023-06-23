@@ -28,19 +28,32 @@ export class FluxPwaGenerator {
     }
 
     /**
-     * @param {string} web_root
-     * @param {fileFilter | null} file_filter
-     * @param {boolean | null} ignore_jsdoc_files
+     * @param {string} root
      * @returns {Promise<void>}
      */
-    async deleteIgnoresFiles(web_root, file_filter = null, ignore_jsdoc_files = null) {
-        await (await import("./Pwa/DeleteIgnoresFiles.mjs")).DeleteIgnoresFiles.new(
+    async deleteEmptyFolders(root) {
+        await (await import("./Pwa/DeleteEmptyFolders.mjs")).DeleteEmptyFolders.new(
             this
         )
-            .deleteIgnoresFiles(
-                web_root,
+            .deleteEmptyFolders(
+                root
+            );
+    }
+
+    /**
+     * @param {string} root
+     * @param {fileFilter | null} file_filter
+     * @param {boolean | null} exclude_jsdoc_files
+     * @returns {Promise<void>}
+     */
+    async deleteExcludedFiles(root, file_filter = null, exclude_jsdoc_files = null) {
+        await (await import("./Pwa/DeleteExcludedFiles.mjs")).DeleteExcludedFiles.new(
+            this
+        )
+            .deleteExcludedFiles(
+                root,
                 file_filter,
-                ignore_jsdoc_files
+                exclude_jsdoc_files
             );
     }
 
@@ -100,25 +113,25 @@ export class FluxPwaGenerator {
     /**
      * @param {string} service_worker_template_mjs_file
      * @param {string} service_worker_mjs_file
-     * @param {string} web_root
+     * @param {string} root
      * @param {string} application_cache_prefix
      * @param {{[key: string]: *} | null} data
      * @param {fileFilter | null} file_filter
-     * @param {boolean | null} ignore_jsdoc_files
+     * @param {boolean | null} exclude_jsdoc_files
      * @returns {Promise<void>}
      */
-    async generateServiceWorker(service_worker_template_mjs_file, service_worker_mjs_file, web_root, application_cache_prefix, data = null, file_filter = null, ignore_jsdoc_files = null) {
+    async generateServiceWorker(service_worker_template_mjs_file, service_worker_mjs_file, root, application_cache_prefix, data = null, file_filter = null, exclude_jsdoc_files = null) {
         await (await import("./Pwa/GenerateServiceWorker.mjs")).GenerateServiceWorker.new(
             this
         )
             .generateServiceWorker(
                 service_worker_template_mjs_file,
                 service_worker_mjs_file,
-                web_root,
+                root,
                 application_cache_prefix,
                 data,
                 file_filter,
-                ignore_jsdoc_files
+                exclude_jsdoc_files
             );
     }
 
@@ -134,17 +147,17 @@ export class FluxPwaGenerator {
     }
 
     /**
-     * @param {string} web_root
+     * @param {string} root
      * @param {fileFilter | null} file_filter
-     * @param {boolean | null} ignore_jsdoc_files
+     * @param {boolean | null} exclude_jsdoc_files
      * @returns {Promise<string[][]>}
      */
-    async scanFiles(web_root, file_filter = null, ignore_jsdoc_files = null) {
+    async scanFiles(root, file_filter = null, exclude_jsdoc_files = null) {
         return (await import("./Pwa/ScanFiles.mjs")).ScanFiles.new()
             .scanFiles(
-                web_root,
+                root,
                 file_filter,
-                ignore_jsdoc_files
+                exclude_jsdoc_files
             );
     }
 }
