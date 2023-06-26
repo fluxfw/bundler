@@ -26,31 +26,31 @@ export class ScanFiles {
      */
     async scanFiles(root, file_filter = null, exclude_jsdoc_files = null) {
         return (async function scanFiles(folder) {
-            const files = [
-                [],
-                [],
-                []
-            ];
+            const files = [];
+            const excluded_file_filter_files = [];
+            const excluded_jsdoc_file = [];
 
-            for (const file of await readdir(folder)) {
-                const _file = join(folder, file);
+            for (const name of await readdir(folder)) {
+                const file = join(folder, name);
 
-                if ((await stat(_file)).isDirectory()) {
-                    for (const [
-                        i,
-                        _files
-                    ] of (await scanFiles(
-                        _file
-                    )).entries()) {
-                        files[i].push(..._files);
-                    }
+                if ((await stat(file)).isDirectory()) {
+                    const [
+                        folder_files,
+                        folder_excluded_file_filter_files,
+                        folder_excluded_jsdoc_file
+                    ] = await scanFiles(
+                        file
+                    );
+                    files.push(...folder_files);
+                    excluded_file_filter_files.push(...folder_excluded_file_filter_files);
+                    excluded_jsdoc_file.push(...folder_excluded_jsdoc_file);
                 } else {
-                    const root_file = relative(root, _file);
+                    const root_file = relative(root, file);
 
                     if (file_filter !== null && !file_filter(
                         root_file
                     )) {
-                        files[1].push(root_file);
+                        excluded_file_filter_files.push(root_file);
                         continue;
                     }
 
@@ -58,20 +58,24 @@ export class ScanFiles {
                         ".cjs",
                         ".js",
                         ".mjs"
-                    ].includes(extname(_file))) {
-                        const code = await readFile(_file, "utf8");
+                    ].includes(extname(file))) {
+                        const code = await readFile(file, "utf8");
 
                         if (code.includes("* @typedef {") && code.replaceAll(/\/\*[\s\S]*?\*\//g, "").trim() === "") {
-                            files[2].push(root_file);
+                            excluded_jsdoc_file.push(root_file);
                             continue;
                         }
                     }
 
-                    files[0].push(root_file);
+                    files.push(root_file);
                 }
             }
 
-            return files;
+            return [
+                files,
+                excluded_file_filter_files,
+                excluded_jsdoc_file
+            ];
         })(
             root
         );

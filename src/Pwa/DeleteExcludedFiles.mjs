@@ -47,13 +47,18 @@ export class DeleteExcludedFiles {
         );
 
         if (excluded_file_filter_files.length > 0) {
-            console.log("Delete excluded files (File filter):");
+            let output_header = false;
 
             for (const root_file of excluded_file_filter_files) {
                 const file = join(root, root_file);
 
                 if (!existsSync(file)) {
                     continue;
+                }
+
+                if (!output_header) {
+                    output_header = true;
+                    console.log("Delete excluded files (File filter):");
                 }
 
                 console.log(`- ${file}`);
@@ -63,13 +68,18 @@ export class DeleteExcludedFiles {
         }
 
         if (excluded_jsdoc_files.length > 0) {
-            console.log("Delete excluded files (JSDoc file):");
+            let output_header = false;
 
             for (const root_file of excluded_jsdoc_files) {
                 const file = join(root, root_file);
 
                 if (!existsSync(file)) {
                     continue;
+                }
+
+                if (!output_header) {
+                    output_header = true;
+                    console.log("Delete excluded files (JSDoc file):");
                 }
 
                 console.log(`- ${file}`);

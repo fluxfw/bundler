@@ -1,3 +1,3 @@
 /**
- * @typedef {(file: string) => boolean} fileFilter
+ * @typedef {(root_file: string) => boolean} fileFilter
  */

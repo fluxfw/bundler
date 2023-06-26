@@ -27,50 +27,44 @@ export class DeleteEmptyFolders {
      * @returns {Promise<void>}
      */
     async deleteEmptyFolders(root) {
-        const empty_folders = (await (async function scanFolders(folder) {
-            const files = await readdir(folder);
+        const folders = await (async function scanFiles(folder) {
+            const files = [];
 
-            const folders = [
-                [
-                    folder,
-                    files.length
-                ]
-            ];
+            const names = await readdir(folder);
 
-            for (const file of files) {
-                const _file = join(folder, file);
+            if (names.length === 0) {
+                files.push(folder);
+            }
 
-                if (!(await stat(_file)).isDirectory()) {
+            for (const name of names) {
+                const file = join(folder, name);
+
+                if (!(await stat(file)).isDirectory()) {
                     continue;
                 }
 
-                folders.push(...await scanFolders(
-                    _file
+                files.push(...await scanFiles(
+                    file
                 ));
             }
 
-            return folders;
+            return files;
         })(
             root
-        )).filter(([
-            ,
-            count
-        ]) => count === 0).map(([
-            folder
-        ]) => folder);
+        );
 
-        if (empty_folders.length === 0) {
+        if (folders.length === 0) {
             return;
         }
 
-        if (!this.#output_header) {
-            this.#output_header = true;
-            console.log("Delete empty folders:");
-        }
-
-        for (const folder of empty_folders) {
+        for (const folder of folders) {
             if (!existsSync(folder)) {
                 continue;
+            }
+
+            if (!this.#output_header) {
+                this.#output_header = true;
+                console.log("Delete empty folders:");
             }
 
             console.log(`- ${folder}`);
