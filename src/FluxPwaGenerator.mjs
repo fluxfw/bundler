@@ -9,31 +9,31 @@ import { ScanFiles } from "./Pwa/ScanFiles.mjs";
 
 /** @typedef {import("./Pwa/fileFilter.mjs").fileFilter} fileFilter */
 /** @typedef {import("./Pwa/getIconTemplateFile.mjs").getIconTemplateFile} getIconTemplateFile */
-/** @typedef {import("../../flux-localization-api/src/FluxLocalizationApi.mjs").FluxLocalizationApi} FluxLocalizationApi */
+/** @typedef {import("./Localization/Localization.mjs").Localization} Localization */
 /** @typedef {import("../../flux-pwa-api/src/Pwa/Manifest.mjs").Manifest} Manifest */
 
 export class FluxPwaGenerator {
     /**
-     * @type {FluxLocalizationApi | null}
+     * @type {Localization | null}
      */
-    #flux_localization_api;
+    #localization;
 
     /**
-     * @param {FluxLocalizationApi | null} flux_localization_api
+     * @param {Localization | null} localization
      * @returns {FluxPwaGenerator}
      */
-    static new(flux_localization_api = null) {
+    static new(localization = null) {
         return new this(
-            flux_localization_api
+            localization
         );
     }
 
     /**
-     * @param {FluxLocalizationApi | null} flux_localization_api
+     * @param {Localization | null} localization
      * @private
      */
-    constructor(flux_localization_api) {
-        this.#flux_localization_api = flux_localization_api;
+    constructor(localization) {
+        this.#localization = localization;
     }
 
     /**
@@ -91,7 +91,7 @@ export class FluxPwaGenerator {
     async generateIndexHtmls(index_template_html_file, index_html_file, manifest_json_file, localization_folder = null) {
         await GenerateIndexHtmls.new(
             this,
-            this.#flux_localization_api
+            this.#localization
         )
             .generateIndexHtmls(
                 index_template_html_file,
@@ -110,7 +110,7 @@ export class FluxPwaGenerator {
     async generateManifestJsons(manifest_template_json_file, manifest_json_file, localization_folder = null) {
         await GenerateManifestJsons.new(
             this,
-            this.#flux_localization_api
+            this.#localization
         )
             .generateManifestJsons(
                 manifest_template_json_file,

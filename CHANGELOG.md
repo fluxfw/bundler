@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-07-17-1
+
+Changes:
+
+- General `Localization`
+
 ## v2023-06-26-1
 
 Changes:
