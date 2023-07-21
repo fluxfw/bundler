@@ -85,10 +85,10 @@ export class FluxPwaGenerator {
      * @param {string} index_template_html_file
      * @param {string} index_html_file
      * @param {string} manifest_json_file
-     * @param {string | null} localization_folder
+     * @param {string | null} localization_module
      * @returns {Promise<void>}
      */
-    async generateIndexHtmls(index_template_html_file, index_html_file, manifest_json_file, localization_folder = null) {
+    async generateIndexHtmls(index_template_html_file, index_html_file, manifest_json_file, localization_module = null) {
         await GenerateIndexHtmls.new(
             this,
             this.#localization
@@ -97,25 +97,24 @@ export class FluxPwaGenerator {
                 index_template_html_file,
                 index_html_file,
                 manifest_json_file,
-                localization_folder
+                localization_module
             );
     }
 
     /**
-     * @param {string} manifest_template_json_file
+     * @param {Manifest} manifest_template
      * @param {string} manifest_json_file
-     * @param {string | null} localization_folder
+     * @param {string | null} localization_module
      * @returns {Promise<void>}
      */
-    async generateManifestJsons(manifest_template_json_file, manifest_json_file, localization_folder = null) {
+    async generateManifestJsons(manifest_template, manifest_json_file, localization_module = null) {
         await GenerateManifestJsons.new(
-            this,
             this.#localization
         )
             .generateManifestJsons(
-                manifest_template_json_file,
+                manifest_template,
                 manifest_json_file,
-                localization_folder
+                localization_module
             );
     }
 

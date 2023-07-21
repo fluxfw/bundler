@@ -1,4 +1,3 @@
-import { LOCALIZATION_MODULE_PWA_GENERATOR } from "../Localization/LOCALIZATION_MODULE.mjs";
 import { dirname, join } from "node:path/posix";
 import { readFile, writeFile } from "node:fs/promises";
 
@@ -41,19 +40,14 @@ export class GenerateIndexHtmls {
      * @param {string} index_template_html_file
      * @param {string} index_html_file
      * @param {string} manifest_json_file
-     * @param {string | null} localization_folder
+     * @param {string | null} localization_module
      * @returns {Promise<void>}
      */
-    async generateIndexHtmls(index_template_html_file, index_html_file, manifest_json_file, localization_folder = null) {
-        if (localization_folder !== null) {
+    async generateIndexHtmls(index_template_html_file, index_html_file, manifest_json_file, localization_module = null) {
+        if (localization_module !== null) {
             if (this.#localization === null) {
                 throw new Error("Missing Localization");
             }
-
-            await this.#localization.addModule(
-                localization_folder,
-                LOCALIZATION_MODULE_PWA_GENERATOR
-            );
         }
 
         let index_html = await readFile(index_template_html_file, "utf8");
@@ -83,8 +77,8 @@ export class GenerateIndexHtmls {
         const web_manifest_json_file_dot_pos = web_manifest_json_file.lastIndexOf(".");
 
         for (const language of [
-            ...(localization_folder !== null ? Object.keys((await this.#localization.getLanguages(
-                LOCALIZATION_MODULE_PWA_GENERATOR
+            ...(localization_module !== null ? Object.keys((await this.#localization.getLanguages(
+                localization_module
             )).all) : null) ?? [],
             ""
         ]) {

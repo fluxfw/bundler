@@ -1,6 +1,9 @@
 import { copyFile } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { dirname, extname, join } from "node:path/posix";
+
+const execFilePromise = promisify(execFile);
 
 /** @typedef {import("../FluxPwaGenerator.mjs").FluxPwaGenerator} FluxPwaGenerator */
 /** @typedef {import("./getIconTemplateFile.mjs").getIconTemplateFile} getIconTemplateFile */
@@ -61,7 +64,7 @@ export class GenerateIcons {
                 continue;
             }
 
-            execFileSync("magick", [
+            await execFilePromise("magick", [
                 "-background",
                 "none",
                 icon_template_file,

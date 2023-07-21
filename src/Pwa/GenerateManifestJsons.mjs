@@ -1,68 +1,50 @@
-import { LOCALIZATION_MODULE_PWA_GENERATOR } from "../Localization/LOCALIZATION_MODULE.mjs";
 import { writeFile } from "node:fs/promises";
 
-/** @typedef {import("../FluxPwaGenerator.mjs").FluxPwaGenerator} FluxPwaGenerator */
 /** @typedef {import("../Localization/Localization.mjs").Localization} Localization */
+/** @typedef {import("../../../flux-pwa-api/src/Pwa/Manifest.mjs").Manifest} Manifest */
 
 export class GenerateManifestJsons {
-    /**
-     * @type {FluxPwaGenerator}
-     */
-    #flux_pwa_generator;
     /**
      * @type {Localization | null}
      */
     #localization;
 
     /**
-     * @param {FluxPwaGenerator} flux_pwa_generator
      * @param {Localization | null} localization
      * @returns {GenerateManifestJsons}
      */
-    static new(flux_pwa_generator, localization = null) {
+    static new(localization = null) {
         return new this(
-            flux_pwa_generator,
             localization
         );
     }
 
     /**
-     * @param {FluxPwaGenerator} flux_pwa_generator
      * @param {Localization | null} localization
      * @private
      */
-    constructor(flux_pwa_generator, localization) {
-        this.#flux_pwa_generator = flux_pwa_generator;
+    constructor(localization) {
         this.#localization = localization;
     }
 
     /**
-     * @param {string} manifest_template_json_file
+     * @param {Manifest} manifest_template
      * @param {string} manifest_json_file
-     * @param {string | null} localization_folder
+     * @param {string | null} localization_module
      * @returns {Promise<void>}
      */
-    async generateManifestJsons(manifest_template_json_file, manifest_json_file, localization_folder = null) {
-        if (localization_folder !== null) {
+    async generateManifestJsons(manifest_template, manifest_json_file, localization_module = null) {
+        if (localization_module !== null) {
             if (this.#localization === null) {
                 throw new Error("Missing Localization");
             }
-
-            await this.#localization.addModule(
-                localization_folder,
-                LOCALIZATION_MODULE_PWA_GENERATOR
-            );
         }
-
-        const manifest = await this.#flux_pwa_generator.getManifest(
-            manifest_template_json_file
-        );
 
         const manifest_json_file_dot_pos = manifest_json_file.lastIndexOf(".");
 
         for (const language of [
-            ...(localization_folder !== null ? Object.keys((await this.#localization.getLanguages(
-                LOCALIZATION_MODULE_PWA_GENERATOR
+            ...(localization_module !== null ? Object.keys((await this.#localization.getLanguages(
+                localization_module
             )).all) : null) ?? [],
             ""
         ]) {
@@ -70,28 +52,28 @@ export class GenerateManifestJsons {
 
             console.log(`Generate ${localized_manifest_json_file}`);
 
-            const localized_manifest = structuredClone(manifest);
+            const localized_manifest = structuredClone(manifest_template);
 
-            const localized_manifest_language = language !== "" ? language : manifest.lang ?? "";
+            const localized_manifest_language = language !== "" ? language : manifest_template.lang ?? "";
 
             for (const key of [
                 "description",
                 "name",
                 "short_name"
             ]) {
-                if (localization_folder !== null && localized_manifest_language !== "" && (localized_manifest[key] ?? "") !== "") {
+                if (localization_module !== null && localized_manifest_language !== "" && (localized_manifest[key] ?? "") !== "") {
                     localized_manifest[key] = await this.#localization.translate(
+                        localization_module,
                         localized_manifest[key],
-                        LOCALIZATION_MODULE_PWA_GENERATOR,
                         null,
                         localized_manifest_language
                     );
                 }
             }
 
-            if (localization_folder !== null && localized_manifest_language !== "") {
+            if (localization_module !== null && localized_manifest_language !== "") {
                 localized_manifest.dir = (await this.#localization.getLanguage(
-                    LOCALIZATION_MODULE_PWA_GENERATOR,
+                    localization_module,
                     localized_manifest_language
                 )).direction;
             }
