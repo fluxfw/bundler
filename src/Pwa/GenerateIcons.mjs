@@ -3,10 +3,10 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { dirname, extname, join } from "node:path/posix";
 
-const execFilePromise = promisify(execFile);
-
 /** @typedef {import("../FluxPwaGenerator.mjs").FluxPwaGenerator} FluxPwaGenerator */
 /** @typedef {import("./getIconTemplateFile.mjs").getIconTemplateFile} getIconTemplateFile */
+
+const execFilePromise = promisify(execFile);
 
 export class GenerateIcons {
     /**
