@@ -44,7 +44,8 @@ export class GenerateManifestJsons {
 
         for (const language of [
             ...(localization_module !== null ? Object.keys((await this.#localization.getLanguages(
-                localization_module
+                localization_module,
+                true
             )).all) : null) ?? [],
             ""
         ]) {
