@@ -77,10 +77,10 @@ export class GenerateIndexHtmls {
         const web_manifest_json_file_dot_pos = web_manifest_json_file.lastIndexOf(".");
 
         for (const language of [
-            ...(localization_module !== null ? Object.keys((await this.#localization.getLanguages(
+            ...(localization_module !== null ? Object.keys(await this.#localization.getLanguages(
                 localization_module,
                 true
-            )).all) : null) ?? [],
+            )) : null) ?? [],
             ""
         ]) {
             const localized_index_html_file = language !== "" ? `${index_html_file.substring(0, index_html_file_dot_pos)}-${language}${index_html_file.substring(index_html_file_dot_pos)}` : index_html_file;

@@ -43,10 +43,10 @@ export class GenerateManifestJsons {
         const manifest_json_file_dot_pos = manifest_json_file.lastIndexOf(".");
 
         for (const language of [
-            ...(localization_module !== null ? Object.keys((await this.#localization.getLanguages(
+            ...(localization_module !== null ? Object.keys(await this.#localization.getLanguages(
                 localization_module,
                 true
-            )).all) : null) ?? [],
+            )) : null) ?? [],
             ""
         ]) {
             const localized_manifest_json_file = language !== "" ? `${manifest_json_file.substring(0, manifest_json_file_dot_pos)}-${language}${manifest_json_file.substring(manifest_json_file_dot_pos)}` : manifest_json_file;
