@@ -81,8 +81,7 @@ export class GenerateManifestJsons {
 
             localized_manifest.lang = localized_manifest_language;
 
-            await writeFile(localized_manifest_json_file, `${JSON.stringify(localized_manifest, null, 4)}
-`);
+            await writeFile(localized_manifest_json_file, `${JSON.stringify(localized_manifest, null, 4)}\n`);
         }
     }
 }
