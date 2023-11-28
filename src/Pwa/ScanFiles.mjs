@@ -55,10 +55,10 @@ export class ScanFiles {
                     }
 
                     if ((exclude_jsdoc_files ?? true) && [
-                        ".cjs",
-                        ".js",
-                        ".mjs"
-                    ].includes(extname(file))) {
+                        "cjs",
+                        "js",
+                        "mjs"
+                    ].includes(extname(file).substring(1).toLowerCase())) {
                         const code = await readFile(file, "utf8");
 
                         if (code.includes("* @typedef {") && code.replaceAll(/\/\*[\s\S]*?\*\//g, "").trim() === "") {

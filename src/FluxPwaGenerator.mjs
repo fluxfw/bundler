@@ -1,4 +1,4 @@
-import { DeleteEmptyFolders } from "./Pwa/DeleteEmptyFolders.mjs";
+import { DeleteEmptyFoldersOrInvalidSymlinks } from "./Pwa/DeleteEmptyFoldersOrInvalidSymlinks.mjs";
 import { DeleteExcludedFiles } from "./Pwa/DeleteExcludedFiles.mjs";
 import { GenerateIcons } from "./Pwa/GenerateIcons.mjs";
 import { GenerateIndexHtmls } from "./Pwa/GenerateIndexHtmls.mjs";
@@ -40,11 +40,11 @@ export class FluxPwaGenerator {
      * @param {string} root
      * @returns {Promise<void>}
      */
-    async deleteEmptyFolders(root) {
-        await DeleteEmptyFolders.new(
+    async deleteEmptyFoldersOrInvalidSymlinks(root) {
+        await DeleteEmptyFoldersOrInvalidSymlinks.new(
             this
         )
-            .deleteEmptyFolders(
+            .deleteEmptyFoldersOrInvalidSymlinks(
                 root
             );
     }

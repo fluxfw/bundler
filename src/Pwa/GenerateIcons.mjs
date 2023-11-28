@@ -59,7 +59,7 @@ export class GenerateIcons {
                 throw new Error("Invalid icon");
             }
 
-            if (icon.sizes === "any" && icon.type === "image/svg+xml" && extname(icon_template_file) === ".svg") {
+            if (icon.sizes === "any" && icon.type === "image/svg+xml" && extname(icon_template_file).substring(1).toLowerCase() === "svg") {
                 await copyFile(icon_template_file, icon_file);
                 continue;
             }
