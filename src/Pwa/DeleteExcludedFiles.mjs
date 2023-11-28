@@ -1,6 +1,5 @@
-import { existsSync } from "node:fs";
 import { join } from "node:path/posix";
-import { unlink } from "node:fs/promises";
+import { lstat, unlink } from "node:fs/promises";
 
 /** @typedef {import("./fileFilter.mjs").fileFilter} fileFilter */
 /** @typedef {import("../FluxPwaGenerator.mjs").FluxPwaGenerator} FluxPwaGenerator */
@@ -52,8 +51,14 @@ export class DeleteExcludedFiles {
             for (const root_file of excluded_file_filter_files) {
                 const file = join(root, root_file);
 
-                if (!existsSync(file)) {
-                    continue;
+                try {
+                    await lstat(file);
+                } catch (error) {
+                    if ((error?.code ?? null) === "ENOENT") {
+                        continue;
+                    }
+
+                    throw error;
                 }
 
                 if (!output_header) {
@@ -73,8 +78,14 @@ export class DeleteExcludedFiles {
             for (const root_file of excluded_jsdoc_files) {
                 const file = join(root, root_file);
 
-                if (!existsSync(file)) {
-                    continue;
+                try {
+                    await lstat(file);
+                } catch (error) {
+                    if ((error?.code ?? null) === "ENOENT") {
+                        continue;
+                    }
+
+                    throw error;
                 }
 
                 if (!output_header) {

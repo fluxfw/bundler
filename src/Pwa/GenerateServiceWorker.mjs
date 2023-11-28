@@ -32,12 +32,13 @@ export class GenerateServiceWorker {
      * @param {string} service_worker_template_mjs_file
      * @param {string} service_worker_mjs_file
      * @param {string} root
+     * @param {string | null} application_cache_prefix
      * @param {{[key: string]: *} | null} data
      * @param {fileFilter | null} file_filter
      * @param {boolean | null} exclude_jsdoc_files
      * @returns {Promise<void>}
      */
-    async generateServiceWorker(service_worker_template_mjs_file, service_worker_mjs_file, root, data = null, file_filter = null, exclude_jsdoc_files = null) {
+    async generateServiceWorker(service_worker_template_mjs_file, service_worker_mjs_file, root, application_cache_prefix = null, data = null, file_filter = null, exclude_jsdoc_files = null) {
         console.log(`Generate ${service_worker_mjs_file}`);
 
         await writeFile(service_worker_mjs_file, "");
@@ -82,7 +83,13 @@ export class GenerateServiceWorker {
                 ],
                 ...files
             ],
-            APPLICATION_CACHE_VERSION: crypto.randomUUID()
+            ...application_cache_prefix !== null ? {
+                APPLICATION_CACHE_PREFIX: application_cache_prefix
+            } : null,
+            APPLICATION_CACHE_VERSION: crypto.randomUUID(),
+            ...application_cache_prefix !== null ? {
+                SKIP_WAITING: (await import("../../../flux-pwa/src/Pwa/SKIP_WAITING.mjs")).SKIP_WAITING
+            } : null
         })));
     }
 }
