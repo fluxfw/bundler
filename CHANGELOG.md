@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-11-28-1
+
+Changes:
+
+- Pass `web_index_mjs_file`
+
 ## v2023-09-25-1
 
 Changes:

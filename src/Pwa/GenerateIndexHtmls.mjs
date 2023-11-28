@@ -40,10 +40,11 @@ export class GenerateIndexHtmls {
      * @param {string} index_template_html_file
      * @param {string} index_html_file
      * @param {string} manifest_json_file
+     * @param {string} web_index_mjs_file
      * @param {string | null} localization_module
      * @returns {Promise<void>}
      */
-    async generateIndexHtmls(index_template_html_file, index_html_file, manifest_json_file, localization_module = null) {
+    async generateIndexHtmls(index_template_html_file, index_html_file, manifest_json_file, web_index_mjs_file, localization_module = null) {
         if (localization_module !== null) {
             if (this.#localization === null) {
                 throw new Error("Missing Localization");
@@ -97,6 +98,7 @@ export class GenerateIndexHtmls {
                 "description",
                 "dir",
                 "icons",
+                "index_mjs_file",
                 "lang",
                 "manifest",
                 "name",
@@ -133,6 +135,12 @@ export class GenerateIndexHtmls {
                                     return icon_line;
                                 }).join("\n");
                             }).join("\n");
+                            break;
+
+                        case "index_mjs_file":
+                            localized_index_html = localized_index_html.replaceAll(placeholder_key, this.#escapeHtml(
+                                web_index_mjs_file
+                            ));
                             break;
 
                         case "manifest":

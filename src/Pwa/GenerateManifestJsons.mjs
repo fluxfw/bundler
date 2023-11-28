@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises";
 
 /** @typedef {import("../Localization/Localization.mjs").Localization} Localization */
-/** @typedef {import("../../../flux-pwa-api/src/Pwa/Manifest.mjs").Manifest} Manifest */
+/** @typedef {import("../../../flux-pwa/src/Pwa/Manifest.mjs").Manifest} Manifest */
 
 export class GenerateManifestJsons {
     /**

@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-/** @typedef {import("../../../flux-pwa-api/src/Pwa/Manifest.mjs").Manifest} Manifest */
+/** @typedef {import("../../../flux-pwa/src/Pwa/Manifest.mjs").Manifest} Manifest */
 
 export class GetManifest {
     /**
