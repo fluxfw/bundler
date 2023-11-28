@@ -1,6 +1,5 @@
-import { existsSync } from "node:fs";
 import { join } from "node:path/posix";
-import { readdir, rmdir, stat } from "node:fs/promises";
+import { lstat, readdir, rmdir, stat, unlink } from "node:fs/promises";
 
 export class DeleteEmptyFolders {
     /**
@@ -58,8 +57,15 @@ export class DeleteEmptyFolders {
         }
 
         for (const folder of folders) {
-            if (!existsSync(folder)) {
-                continue;
+            let _stat;
+            try {
+                _stat = await lstat(folder);
+            } catch (error) {
+                if ((error?.code ?? null) === "ENOENT") {
+                    continue;
+                }
+
+                throw error;
             }
 
             if (!this.#output_header) {
@@ -69,7 +75,11 @@ export class DeleteEmptyFolders {
 
             console.log(`- ${folder}`);
 
-            await rmdir(folder);
+            if (_stat.isDirectory()) {
+                await rmdir(folder);
+            } else {
+                await unlink(folder);
+            }
         }
 
         await this.deleteEmptyFolders(
