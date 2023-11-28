@@ -106,7 +106,10 @@ export class GenerateIndexHtmls {
             ]) {
                 const placeholder_key = `%${key.toUpperCase()}%`;
 
-                if (key === "icons" ? (manifest.icons ?? []).length > 0 : language !== "" && (key === "manifest" ? true : (manifest[key] ?? "") !== "")) {
+                if (key === "icons" ? (manifest.icons ?? []).length > 0 : language !== "" && ([
+                    "index_mjs_file",
+                    "manifest"
+                ].includes(key) ? true : (manifest[key] ?? "") !== "")) {
                     switch (key) {
                         case "icons":
                             localized_index_html = localized_index_html.split("\n").map(line => {
