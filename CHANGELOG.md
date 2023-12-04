@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-12-04-4
+
+Changes:
+
+- Minfiy fix `flux-color-scheme` and may WebKit based browsers
+
 ## v2023-12-04-3
 
 Changes:

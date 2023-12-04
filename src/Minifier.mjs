@@ -274,6 +274,7 @@ export class Minifier {
         const result = uglifyJs(this.#minify(
             code
         ), {
+            keep_fnames: true,
             module: module ?? true
         });
 
