@@ -1,46 +1,29 @@
-import { copyFile } from "node:fs/promises";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { execFileSync } from "node:child_process";
+import { copyFile, readFile } from "node:fs/promises";
 import { dirname, extname, join } from "node:path/posix";
-
-/** @typedef {import("../FluxPwaGenerator.mjs").FluxPwaGenerator} FluxPwaGenerator */
-/** @typedef {import("./getIconTemplateFile.mjs").getIconTemplateFile} getIconTemplateFile */
-
-const execFilePromise = promisify(execFile);
 
 export class GenerateIcons {
     /**
-     * @type {FluxPwaGenerator}
-     */
-    #flux_pwa_generator;
-
-    /**
-     * @param {FluxPwaGenerator} flux_pwa_generator
      * @returns {GenerateIcons}
      */
-    static new(flux_pwa_generator) {
-        return new this(
-            flux_pwa_generator
-        );
+    static new() {
+        return new this();
     }
 
     /**
-     * @param {FluxPwaGenerator} flux_pwa_generator
      * @private
      */
-    constructor(flux_pwa_generator) {
-        this.#flux_pwa_generator = flux_pwa_generator;
+    constructor() {
+
     }
 
     /**
-     * @param {getIconTemplateFile | string} get_icon_template_file
+     * @param {((icon_file: string) => string) | string} get_icon_template_file
      * @param {string} manifest_json_file
      * @returns {Promise<void>}
      */
     async generateIcons(get_icon_template_file, manifest_json_file) {
-        const manifest = await this.#flux_pwa_generator.getManifest(
-            manifest_json_file
-        );
+        const manifest = JSON.parse(await readFile(manifest_json_file, "utf8"));
 
         for (const icon of manifest.icons ?? []) {
             if ((icon.src ?? "") === "") {
@@ -64,7 +47,7 @@ export class GenerateIcons {
                 continue;
             }
 
-            await execFilePromise("magick", [
+            execFileSync("magick", [
                 "-background",
                 "none",
                 icon_template_file,

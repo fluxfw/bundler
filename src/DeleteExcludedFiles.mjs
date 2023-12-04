@@ -1,36 +1,33 @@
+import { FileFilter } from "./FileFilter.mjs";
 import { join } from "node:path/posix";
 import { lstat, unlink } from "node:fs/promises";
 
-/** @typedef {import("./fileFilter.mjs").fileFilter} fileFilter */
-/** @typedef {import("../FluxPwaGenerator.mjs").FluxPwaGenerator} FluxPwaGenerator */
-
 export class DeleteExcludedFiles {
     /**
-     * @type {FluxPwaGenerator}
+     * @type {FileFilter}
      */
-    #flux_pwa_generator;
+    #file_filter;
 
     /**
-     * @param {FluxPwaGenerator} flux_pwa_generator
      * @returns {DeleteExcludedFiles}
      */
-    static new(flux_pwa_generator) {
+    static new() {
         return new this(
-            flux_pwa_generator
+            FileFilter.new()
         );
     }
 
     /**
-     * @param {FluxPwaGenerator} flux_pwa_generator
+     * @param {FileFilter} file_filter
      * @private
      */
-    constructor(flux_pwa_generator) {
-        this.#flux_pwa_generator = flux_pwa_generator;
+    constructor(file_filter) {
+        this.#file_filter = file_filter;
     }
 
     /**
      * @param {string} root
-     * @param {fileFilter | null} file_filter
+     * @param {((root_file: string) => boolean) | null} file_filter
      * @param {boolean | null} exclude_jsdoc_files
      * @returns {Promise<void>}
      */
@@ -39,15 +36,13 @@ export class DeleteExcludedFiles {
             ,
             excluded_file_filter_files,
             excluded_jsdoc_files
-        ] = await this.#flux_pwa_generator.scanFiles(
+        ] = await this.#file_filter.fileFilter(
             root,
             file_filter,
             exclude_jsdoc_files
         );
 
         if (excluded_file_filter_files.length > 0) {
-            let output_header = false;
-
             for (const root_file of excluded_file_filter_files) {
                 const file = join(root, root_file);
 
@@ -61,20 +56,13 @@ export class DeleteExcludedFiles {
                     throw error;
                 }
 
-                if (!output_header) {
-                    output_header = true;
-                    console.log("Delete excluded files (File filter):");
-                }
-
-                console.log(`- ${file}`);
+                console.log(`Delete ${file} (File filter)`);
 
                 await unlink(file);
             }
         }
 
         if (excluded_jsdoc_files.length > 0) {
-            let output_header = false;
-
             for (const root_file of excluded_jsdoc_files) {
                 const file = join(root, root_file);
 
@@ -88,12 +76,7 @@ export class DeleteExcludedFiles {
                     throw error;
                 }
 
-                if (!output_header) {
-                    output_header = true;
-                    console.log("Delete excluded files (JSDoc file):");
-                }
-
-                console.log(`- ${file}`);
+                console.log(`Delete ${file} (JSDoc file)`);
 
                 await unlink(file);
             }

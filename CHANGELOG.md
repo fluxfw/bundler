@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-12-04-1
+
+Changes:
+
+- Bundler/Minifier
+
 ## v2023-11-28-6
 
 Changes:

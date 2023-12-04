@@ -1,11 +1,9 @@
 import { extname, join, relative } from "node:path/posix";
 import { readdir, readFile, stat } from "node:fs/promises";
 
-/** @typedef {import("./fileFilter.mjs").fileFilter} fileFilter */
-
-export class ScanFiles {
+export class FileFilter {
     /**
-     * @returns {ScanFiles}
+     * @returns {FileFilter}
      */
     static new() {
         return new this();
@@ -20,11 +18,11 @@ export class ScanFiles {
 
     /**
      * @param {string} root
-     * @param {fileFilter | null} file_filter
+     * @param {((root_file: string) => boolean) | null} file_filter
      * @param {boolean | null} exclude_jsdoc_files
      * @returns {Promise<string[][]>}
      */
-    async scanFiles(root, file_filter = null, exclude_jsdoc_files = null) {
+    async fileFilter(root, file_filter = null, exclude_jsdoc_files = null) {
         return (async function scanFiles(folder) {
             const files = [];
             const excluded_file_filter_files = [];

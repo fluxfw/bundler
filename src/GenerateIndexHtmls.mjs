@@ -1,38 +1,29 @@
 import { dirname, join } from "node:path/posix";
 import { readFile, writeFile } from "node:fs/promises";
 
-/** @typedef {import("../FluxPwaGenerator.mjs").FluxPwaGenerator} FluxPwaGenerator */
-/** @typedef {import("../Localization/Localization.mjs").Localization} Localization */
+/** @typedef {import("./Localization/Localization.mjs").Localization} Localization */
 
 export class GenerateIndexHtmls {
-    /**
-     * @type {FluxPwaGenerator}
-     */
-    #flux_pwa_generator;
     /**
      * @type {Localization | null}
      */
     #localization;
 
     /**
-     * @param {FluxPwaGenerator} flux_pwa_generator
      * @param {Localization | null} localization
      * @returns {GenerateIndexHtmls}
      */
-    static new(flux_pwa_generator, localization = null) {
+    static new(localization = null) {
         return new this(
-            flux_pwa_generator,
             localization
         );
     }
 
     /**
-     * @param {FluxPwaGenerator} flux_pwa_generator
      * @param {Localization | null} localization
      * @private
      */
-    constructor(flux_pwa_generator, localization) {
-        this.#flux_pwa_generator = flux_pwa_generator;
+    constructor(localization) {
         this.#localization = localization;
     }
 
@@ -87,9 +78,7 @@ export class GenerateIndexHtmls {
 
             console.log(`Generate ${localized_index_html_file}`);
 
-            const manifest = await this.#flux_pwa_generator.getManifest(
-                language !== "" ? `${manifest_json_file.substring(0, manifest_json_file_dot_pos)}-${language}${manifest_json_file.substring(manifest_json_file_dot_pos)}` : manifest_json_file
-            );
+            const manifest = JSON.parse(await readFile(language !== "" ? `${manifest_json_file.substring(0, manifest_json_file_dot_pos)}-${language}${manifest_json_file.substring(manifest_json_file_dot_pos)}` : manifest_json_file, "utf8"));
 
             let localized_index_html = index_html;
 

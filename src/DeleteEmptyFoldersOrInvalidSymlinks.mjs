@@ -4,11 +4,6 @@ import { lstat, readdir, rmdir, unlink } from "node:fs/promises";
 
 export class DeleteEmptyFoldersOrInvalidSymlinks {
     /**
-     * @type {boolean}
-     */
-    #output_header;
-
-    /**
      * @returns {DeleteEmptyFoldersOrInvalidSymlinks}
      */
     static new() {
@@ -19,7 +14,7 @@ export class DeleteEmptyFoldersOrInvalidSymlinks {
      * @private
      */
     constructor() {
-        this.#output_header = false;
+
     }
 
     /**
@@ -73,16 +68,11 @@ export class DeleteEmptyFoldersOrInvalidSymlinks {
                 throw error;
             }
 
-            if (!this.#output_header) {
-                this.#output_header = true;
-                console.log("Delete empty folders or invalid symlinks:");
-            }
-
             if (stat.isDirectory()) {
-                console.log(`- ${file} (Empty folder)`);
+                console.log(`Delete ${file} (Empty folder)`);
                 await rmdir(file);
             } else {
-                console.log(`- ${file} (Invalid symlink)`);
+                console.log(`Delete ${file} (Invalid symlink)`);
                 await unlink(file);
             }
         }

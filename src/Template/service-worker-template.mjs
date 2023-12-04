@@ -1,8 +1,9 @@
+import { APPLICATION_CACHE_PREFIX } from "./Cache/CACHE.mjs";
+import { SKIP_WAITING } from "./Libs/flux-pwa/src/Pwa/SKIP_WAITING.mjs";
+
 const {
     APPLICATION_CACHE_FILES,
-    APPLICATION_CACHE_PREFIX,
-    APPLICATION_CACHE_VERSION,
-    SKIP_WAITING
+    APPLICATION_CACHE_VERSION
 } = { /*%DATA%*/ };
 
 const APPLICATION_CACHE_NAME = `${APPLICATION_CACHE_PREFIX}${APPLICATION_CACHE_VERSION}`;
@@ -66,7 +67,7 @@ async function fetchEventAsync(request, path) {
     }
 
     const cache_response = await getApplicationCacheResponse(
-        request
+        path === "/" ? new Request(`${__service_worker_path}index.html`) : request
     );
 
     if (cache_response !== null) {
