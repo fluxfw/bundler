@@ -17,7 +17,7 @@ try {
 
 let uglifyJs = null;
 try {
-    uglifyJs = (await import("../../uglify-js/tools/node.js")).minify;
+    uglifyJs = (await import("uglify-js")).minify;
 } catch (error) {
     console.info("uglify-js is not available (", error, ")");
 }
@@ -38,10 +38,47 @@ export class Minifier {
     }
 
     /**
+     * @param {string} code
+     * @returns {Promise<string>}
+     */
+    async minifyCommonJsJavaScript(code) {
+        return this.#minifyJavaScript(
+            code,
+            false
+        );
+    }
+
+    /**
+     * @param {string} code
+     * @returns {Promise<string>}
+     */
+    async minifyCSS(code) {
+        const result = new CleanCss().minify(this.#minify(
+            code
+        ));
+
+        if (result.errors.length > 0) {
+            throw result.errors;
+        }
+
+        return result.styles;
+    }
+
+    /**
+     * @param {string} code
+     * @returns {Promise<string>}
+     */
+    async minifyESMJavaScript(code) {
+        return this.#minifyJavaScript(
+            code
+        );
+    }
+
+    /**
      * @param {string} folder
      * @returns {Promise<void>}
      */
-    async minifFolder(folder) {
+    async minifyFolder(folder) {
         const files = await (async function scanFiles(_folder) {
             const _files = [];
 
@@ -162,43 +199,6 @@ export class Minifier {
                     break;
             }
         }
-    }
-
-    /**
-     * @param {string} code
-     * @returns {Promise<string>}
-     */
-    async minifyCommonJsJavaScript(code) {
-        return this.#minifyJavaScript(
-            code,
-            false
-        );
-    }
-
-    /**
-     * @param {string} code
-     * @returns {Promise<string>}
-     */
-    async minifyCSS(code) {
-        const result = new CleanCss().minify(this.#minify(
-            code
-        ));
-
-        if (result.errors.length > 0) {
-            throw result.errors;
-        }
-
-        return result.styles;
-    }
-
-    /**
-     * @param {string} code
-     * @returns {Promise<string>}
-     */
-    async minifyESMJavaScript(code) {
-        return this.#minifyJavaScript(
-            code
-        );
     }
 
     /**

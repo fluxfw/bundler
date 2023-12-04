@@ -5,11 +5,7 @@ import { dirname, extname, join, relative } from "node:path/posix";
 
 let MIME_DB = null;
 try {
-    MIME_DB = (await import("../../mime-db/db.json", {
-        assert: {
-            type: "json"
-        }
-    })).default;
+    MIME_DB = (await import("mime-db")).default;
 } catch (error) {
     console.info("mime-db is not available (", error, ")");
 }
