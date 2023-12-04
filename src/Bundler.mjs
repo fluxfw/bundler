@@ -15,7 +15,7 @@ try {
 }
 
 const cssToStyleSheet = await readFile(join(dirname(fileURLToPath(import.meta.url)), "cssToStyleSheet.mjs"), "utf8");
-const template = await readFile(join(dirname(fileURLToPath(import.meta.url)), "Template", "bundler-template"), "utf8");
+const template = await readFile(join(dirname(fileURLToPath(import.meta.url)), "Template", "bundler-template.mjs"), "utf8");
 
 const FUNCTION_NAME_CSS_TO_STYLE_SHEET = "cssToStyleSheet";
 
