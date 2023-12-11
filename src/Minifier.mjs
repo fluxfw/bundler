@@ -1,27 +1,6 @@
 import { extname, join } from "node:path/posix";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 
-let CleanCss = null;
-try {
-    CleanCss = (await import("clean-css")).default;
-} catch (error) {
-    console.info("clean-css is not available (", error, ")");
-}
-
-let minifyXml = null;
-try {
-    minifyXml = (await import("minify-xml")).minify;
-} catch (error) {
-    console.info("minify-xml is not available (", error, ")");
-}
-
-let uglifyJs = null;
-try {
-    uglifyJs = (await import("uglify-js")).minify;
-} catch (error) {
-    console.info("uglify-js is not available (", error, ")");
-}
-
 export class Minifier {
     /**
      * @returns {Minifier}
@@ -53,7 +32,7 @@ export class Minifier {
      * @returns {Promise<string>}
      */
     async minifyCSS(code) {
-        const result = new CleanCss().minify(this.#minify(
+        const result = new (await import("clean-css")).default().minify(this.#minify(
             code
         ));
 
@@ -168,6 +147,19 @@ export class Minifier {
                     );
                     break;
 
+                case "py":
+                    console.log(`Minify ${file}`);
+
+                    await this.#writeFile(
+                        file,
+                        await this.minifyPython(
+                            await this.#readFile(
+                                file
+                            )
+                        )
+                    );
+                    break;
+
                 case "sh":
                     console.log(`Minify ${file}`);
 
@@ -226,6 +218,22 @@ export class Minifier {
      * @param {string} code
      * @returns {Promise<string>}
      */
+    async minifyPython(code) {
+        let _code = this.#minify(
+            code
+        );
+
+        while (_code.includes("\n\n")) {
+            _code = _code.replaceAll("\n\n", "\n");
+        }
+
+        return _code;
+    }
+
+    /**
+     * @param {string} code
+     * @returns {Promise<string>}
+     */
     async minifyShell(code) {
         let _code = this.#minify(
             code
@@ -271,7 +279,7 @@ export class Minifier {
      * @returns {Promise<string>}
      */
     async #minifyJavaScript(code, module = null) {
-        const result = uglifyJs(this.#minify(
+        const result = (await import("uglify-js")).minify(this.#minify(
             code
         ), {
             module: module ?? true
@@ -290,7 +298,7 @@ export class Minifier {
      * @returns {Promise<string>}
      */
     async #minifyXML(code, html = null) {
-        return minifyXml(this.#minify(
+        return (await import("minify-xml")).minify(this.#minify(
             code
         ), {
             ...html ?? false ? {

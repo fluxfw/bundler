@@ -1,7 +1,6 @@
 import { existsSync } from "node:fs";
 import { FileFilter } from "./FileFilter.mjs";
 import { join } from "node:path/posix";
-import { SKIP_WAITING } from "../../flux-pwa/src/Pwa/SKIP_WAITING.mjs";
 import { readFile, writeFile } from "node:fs/promises";
 
 export class GenerateServiceWorker {
@@ -41,7 +40,7 @@ export class GenerateServiceWorker {
         console.log(`Generate ${service_worker_mjs_file}`);
 
         if (!existsSync(service_worker_mjs_file)) {
-            await writeFile(service_worker_mjs_file, "");
+            await writeFile(service_worker_mjs_file, Buffer.alloc(0));
         }
 
         const [
@@ -78,7 +77,7 @@ export class GenerateServiceWorker {
             } : null,
             APPLICATION_CACHE_VERSION: crypto.randomUUID(),
             ...application_cache_prefix !== null ? {
-                SKIP_WAITING
+                SKIP_WAITING: (await import("../../flux-pwa/src/Pwa/SKIP_WAITING.mjs")).SKIP_WAITING
             } : null
         })));
     }

@@ -3,16 +3,6 @@ import { fileURLToPath } from "node:url";
 import { chmod, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, extname, join, relative } from "node:path/posix";
 
-let MIME_DB = null;
-try {
-    MIME_DB = (await import("mime-db")).default;
-} catch (error) {
-    console.info("mime-db is not available (", error, ")");
-}
-
-const cssToStyleSheet = await readFile(join(dirname(fileURLToPath(import.meta.url)), "cssToStyleSheet.mjs"), "utf8");
-const template = await readFile(join(dirname(fileURLToPath(import.meta.url)), "Template", "bundler-template.mjs"), "utf8");
-
 const FUNCTION_NAME_CSS_TO_STYLE_SHEET = "cssToStyleSheet";
 
 const FUNCTION_NAME_LOAD_MODULE = "load_module";
@@ -52,7 +42,7 @@ export class Bundler {
 
         console.log(`Bundle ${output_mjs_file}`);
 
-        const mode = !existsSync(output_mjs_file) ? await stat(input_mjs_file) : null;
+        const mode = !existsSync(output_mjs_file) ? (await stat(input_mjs_file)).mode : null;
 
         const module_ids = {};
 
@@ -63,6 +53,7 @@ export class Bundler {
             hash_bang
         ] = await this.#bundle(
             input_mjs_file,
+            input_mjs_file,
             output_mjs_file,
             !_dev_mode ? minify_css : null,
             !_dev_mode ? minify_xml : null,
@@ -70,7 +61,9 @@ export class Bundler {
             modules
         );
 
-        await writeFile(output_mjs_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${(no_top_level_await ?? false ? template.replace(/^await /, "") : template).replaceAll("/*%ROOT_MODULE_ID%*/", JSON.stringify(module_id)).replaceAll("{ /*%INIT_MODULES%*/ }", Array.isArray(modules) ? "[]" : "{}").replaceAll("{ /*%MODULES%*/ }", () => Array.isArray(modules) ? `[\n${modules.join(",\n")}\n    ]` : `{\n${Object.entries(modules).map(([
+        const code = await readFile(join(dirname(fileURLToPath(import.meta.url)), "Template", "bundler.mjs"), "utf8");
+
+        await writeFile(output_mjs_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${(no_top_level_await ?? false ? code.replace(/^await /, "") : code).replaceAll("/*%ROOT_MODULE_ID%*/", JSON.stringify(module_id)).replaceAll("{ /*%INIT_MODULES%*/ }", Array.isArray(modules) ? "[]" : "{}").replaceAll("{ /*%MODULES%*/ }", () => Array.isArray(modules) ? `[\n${modules.join(",\n")}\n    ]` : `{\n${Object.entries(modules).map(([
             _module_id,
             module
         ]) => `        ${JSON.stringify(_module_id)}: ${module}`).join(",\n")}\n    }`)}`);
@@ -82,6 +75,7 @@ export class Bundler {
 
     /**
      * @param {string} path
+     * @param {string} input_mjs_file
      * @param {string} output_mjs_file
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
@@ -90,7 +84,7 @@ export class Bundler {
      * @param {string | null} module_type
      * @returns {Promise<[number | string, string | null]>}
      */
-    async #bundle(path, output_mjs_file, minify_css, minify_xml, module_ids, modules, module_type = null) {
+    async #bundle(path, input_mjs_file, output_mjs_file, minify_css, minify_xml, module_ids, modules, module_type = null) {
         const _module_type = module_type ?? MODULE_TYPE_JAVASCRIPT;
 
         const is_file_path = path.startsWith("/") || path.startsWith(".");
@@ -132,7 +126,7 @@ export class Bundler {
                             const [
                                 ext,
                                 mime_type
-                            ] = this.#getMimeType(
+                            ] = await this.#getMimeType(
                                 file
                             );
 
@@ -166,6 +160,7 @@ export class Bundler {
 
                         code = `const {\n    ${FUNCTION_NAME_CSS_TO_STYLE_SHEET}\n} = await ${FUNCTION_NAME_LOAD_MODULE}(\n    ${JSON.stringify((await this.#bundle(
                             FUNCTION_NAME_CSS_TO_STYLE_SHEET,
+                            input_mjs_file,
                             output_mjs_file,
                             minify_css,
                             minify_xml,
@@ -216,6 +211,7 @@ export class Bundler {
                                 code
                             ] = await this.#replaceDynamicImportsWithLoadModules(
                                 path,
+                                input_mjs_file,
                                 output_mjs_file,
                                 minify_css,
                                 minify_xml,
@@ -226,7 +222,7 @@ export class Bundler {
                             );
 
                             code = this.#correctImportMetaUrls(
-                                _path,
+                                relative(dirname(input_mjs_file), path),
                                 code
                             );
                         } else {
@@ -242,7 +238,9 @@ export class Bundler {
                 switch (path) {
                     case FUNCTION_NAME_CSS_TO_STYLE_SHEET:
                         code = this.#replaceExportsWithReturns(
-                            cssToStyleSheet.trim()
+                            (await this.#readFile(
+                                join(dirname(fileURLToPath(import.meta.url)), "cssToStyleSheet.mjs")
+                            ))[0]
                         );
                         break;
 
@@ -284,14 +282,14 @@ export class Bundler {
 
     /**
      * @param {string} path
-     * @returns {[string, string]}
+     * @returns {Promise<[string, string]>}
      */
-    #getMimeType(path) {
+    async #getMimeType(path) {
         const ext = extname(path).substring(1).toLowerCase();
 
         return [
             ext,
-            Object.entries(MIME_DB).find(([
+            Object.entries((await import("mime-db")).default).find(([
                 ,
                 value
             ]) => value?.extensions?.includes(ext) ?? false)?.[0] ?? ""
@@ -329,6 +327,7 @@ export class Bundler {
 
     /**
      * @param {string} path
+     * @param {string} input_mjs_file
      * @param {string} output_mjs_file
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
@@ -338,7 +337,7 @@ export class Bundler {
      * @param {string} code
      * @returns {Promise<[boolean, string]>}
      */
-    async #replaceDynamicImportsWithLoadModules(path, output_mjs_file, minify_css, minify_xml, module_ids, modules, has_load_modules, code) {
+    async #replaceDynamicImportsWithLoadModules(path, input_mjs_file, output_mjs_file, minify_css, minify_xml, module_ids, modules, has_load_modules, code) {
         let _has_load_modules = has_load_modules;
         let _code = code;
 
@@ -358,6 +357,7 @@ export class Bundler {
 
             _code = _code.replaceAll(_import, `${FUNCTION_NAME_LOAD_MODULE}(\n    ${JSON.stringify((await this.#bundle(
                 file.startsWith(".") ? join(dirname(path), file) : file,
+                input_mjs_file,
                 output_mjs_file,
                 minify_css,
                 minify_xml,

@@ -1,4 +1,4 @@
-export const MANIFEST_TEMPLATE = Object.freeze({
+export const MANIFEST = Object.freeze({
     background_color: "#ffffff",
     categories: Object.freeze([]),
     description: "",
