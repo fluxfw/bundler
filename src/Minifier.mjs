@@ -1,5 +1,5 @@
 import { extname, join } from "node:path/posix";
-import { readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { lstat, readdir, readFile, writeFile } from "node:fs/promises";
 
 export class Minifier {
     /**
@@ -64,7 +64,7 @@ export class Minifier {
             for (const name of await readdir(_folder)) {
                 const file = join(_folder, name);
 
-                if ((await stat(file)).isDirectory()) {
+                if ((await lstat(file)).isDirectory()) {
                     _files.push(...await scanFiles(
                         file
                     ));

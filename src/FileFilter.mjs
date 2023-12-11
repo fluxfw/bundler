@@ -1,5 +1,5 @@
 import { extname, join, relative } from "node:path/posix";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { lstat, readdir, readFile } from "node:fs/promises";
 
 export class FileFilter {
     /**
@@ -31,7 +31,7 @@ export class FileFilter {
             for (const name of await readdir(folder)) {
                 const file = join(folder, name);
 
-                if ((await stat(file)).isDirectory()) {
+                if ((await lstat(file)).isDirectory()) {
                     const [
                         folder_files,
                         folder_excluded_file_filter_files,
