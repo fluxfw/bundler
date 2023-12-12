@@ -64,7 +64,7 @@ export class Bundler {
 
         const code = await readFile(join(dirname(fileURLToPath(import.meta.url)), "Template", "bundle.mjs"), "utf8");
 
-        await writeFile(output_mjs_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${(no_top_level_await ?? false ? code.replace(/^export default await /, "") : exports ?? false ? code.replace(/^export default /, "") : code).replaceAll("/*%ROOT_MODULE_ID%*/", JSON.stringify(module_id)).replaceAll("{ /*%INIT_LOADED_MODULES%*/ }", Array.isArray(modules) ? "[]" : "{}").replaceAll("{ /*%MODULES%*/ }", () => Array.isArray(modules) ? `[\n${modules.join(",\n")}\n    ]` : `{\n${Object.entries(modules).map(([
+        await writeFile(output_mjs_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${(no_top_level_await ?? false ? code.replace(/^export default await /, "") : exports ?? false ? code : code.replace(/^export default /, "")).replaceAll("/*%ROOT_MODULE_ID%*/", JSON.stringify(module_id)).replaceAll("{ /*%INIT_LOADED_MODULES%*/ }", Array.isArray(modules) ? "[]" : "{}").replaceAll("{ /*%MODULES%*/ }", () => Array.isArray(modules) ? `[\n${modules.join(",\n")}\n    ]` : `{\n${Object.entries(modules).map(([
             _module_id,
             module
         ]) => `        ${JSON.stringify(_module_id)}: ${module}`).join(",\n")}\n    }`)}`);
