@@ -1,4 +1,4 @@
-import { dirname, join } from "node:path/posix";
+import { dirname, join } from "node:path";
 import { readFile, writeFile } from "node:fs/promises";
 
 /** @typedef {import("./Localization/Localization.mjs").Localization} Localization */

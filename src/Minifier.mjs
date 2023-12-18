@@ -1,4 +1,4 @@
-import { extname, join } from "node:path/posix";
+import { extname, join } from "node:path";
 import { lstat, readdir, readFile, writeFile } from "node:fs/promises";
 
 export class Minifier {

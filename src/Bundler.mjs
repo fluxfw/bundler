@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { chmod, readFile, stat, writeFile } from "node:fs/promises";
-import { dirname, extname, join, relative } from "node:path/posix";
+import { dirname, extname, join, relative } from "node:path";
 
 const FUNCTION_NAME_CSS_TO_STYLE_SHEET = "cssToStyleSheet";
 

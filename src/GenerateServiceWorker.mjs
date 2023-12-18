@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { FileFilter } from "./FileFilter.mjs";
-import { join } from "node:path/posix";
+import { join } from "node:path";
 import { readFile, writeFile } from "node:fs/promises";
 
 export class GenerateServiceWorker {

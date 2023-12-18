@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { join } from "node:path/posix";
+import { join } from "node:path";
 import { lstat, readdir, rmdir, unlink } from "node:fs/promises";
 
 export class DeleteEmptyFoldersOrInvalidSymlinks {

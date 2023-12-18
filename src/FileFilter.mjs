@@ -1,4 +1,4 @@
-import { extname, join, relative } from "node:path/posix";
+import { extname, join, relative } from "node:path";
 import { lstat, readdir, readFile } from "node:fs/promises";
 
 export class FileFilter {

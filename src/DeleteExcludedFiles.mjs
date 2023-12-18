@@ -1,5 +1,5 @@
 import { FileFilter } from "./FileFilter.mjs";
-import { join } from "node:path/posix";
+import { join } from "node:path";
 import { lstat, unlink } from "node:fs/promises";
 
 export class DeleteExcludedFiles {

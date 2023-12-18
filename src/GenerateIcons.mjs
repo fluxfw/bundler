@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { copyFile, readFile } from "node:fs/promises";
-import { dirname, extname, join } from "node:path/posix";
+import { dirname, extname, join } from "node:path";
 
 export class GenerateIcons {
     /**
