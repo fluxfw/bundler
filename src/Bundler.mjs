@@ -51,7 +51,8 @@ export class Bundler {
 
         const [
             module_id,
-            hash_bang
+            hash_bang,
+            _exports
         ] = await this.#bundle(
             input_mjs_file,
             input_mjs_file,
@@ -64,7 +65,7 @@ export class Bundler {
 
         const code = await readFile(join(dirname(fileURLToPath(import.meta.url)), "Template", "bundle.mjs"), "utf8");
 
-        await writeFile(output_mjs_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${(no_top_level_await ?? false ? code.replace(/^export default await /, "") : exports ?? false ? code : code.replace(/^export default /, "")).replaceAll("/*%ROOT_MODULE_ID%*/", JSON.stringify(module_id)).replaceAll("{ /*%INIT_LOADED_MODULES%*/ }", Array.isArray(modules) ? "[]" : "{}").replaceAll("{ /*%MODULES%*/ }", () => Array.isArray(modules) ? `[\n${modules.join(",\n")}\n    ]` : `{\n${Object.entries(modules).map(([
+        await writeFile(output_mjs_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${(no_top_level_await ?? false ? code.replace(/^await /, "") : (exports ?? false) && _exports.length > 0 ? _exports.length === 1 && _exports[0] === "default" ? `${"e"}xport default (${code.replace(/;\n$/, "")}).default;\n` : _exports.includes("default") ? `const exports = ${code}\n${"e"}xport default exports.default;\n\n${"e"}xport const {\n${_exports.filter(key => key !== "default").map(key => `    ${key}`).join(",\n")}\n} = exports;\n` : `${"e"}xport const {\n${_exports.map(key => `    ${key}`).join(",\n")}\n} = ${code}` : code).replaceAll("/*%ROOT_MODULE_ID%*/", JSON.stringify(module_id)).replaceAll("{ /*%INIT_LOADED_MODULES%*/ }", Array.isArray(modules) ? "[]" : "{}").replaceAll("{ /*%MODULES%*/ }", () => Array.isArray(modules) ? `[\n${modules.join(",\n")}\n    ]` : `{\n${Object.entries(modules).map(([
             _module_id,
             module
         ]) => `        ${JSON.stringify(_module_id)}: ${module}`).join(",\n")}\n    }`)}`);
@@ -83,7 +84,7 @@ export class Bundler {
      * @param {{[key: string]: number | string}} module_ids
      * @param {string[] | {[key: string]: string}} modules
      * @param {string | null} module_type
-     * @returns {Promise<[number | string, string | null]>}
+     * @returns {Promise<[number | string, string | null, string[]]>}
      */
     async #bundle(path, input_mjs_file, output_mjs_file, minify_css, minify_xml, module_ids, modules, module_type = null) {
         const _module_type = module_type ?? MODULE_TYPE_JAVASCRIPT;
@@ -96,6 +97,7 @@ export class Bundler {
         const module_id = module_ids[module_id_key];
 
         let hash_bang = null;
+        let exports = [];
 
         if ((modules[module_id] ?? null) === null) {
             modules[module_id] = "";
@@ -170,12 +172,20 @@ export class Bundler {
                         ))[0])}\n);\nreturn {\n    default: await ${FUNCTION_NAME_CSS_TO_STYLE_SHEET}(\n        ${this.#toTemplateString(
                             code
                         )}\n    )\n};`;
+
+                        exports = [
+                            "default"
+                        ];
                         break;
 
                     case MODULE_TYPE_JSON:
                         code = `return {\n    default: ${(await this.#readFile(
                             path
                         ))[0]}\n};`;
+
+                        exports = [
+                            "default"
+                        ];
                         break;
 
                     case MODULE_TYPE_JAVASCRIPT:
@@ -203,7 +213,10 @@ export class Bundler {
                                 code
                             );
 
-                            code = this.#replaceExportsWithReturns(
+                            [
+                                code,
+                                exports
+                            ] = this.#replaceExportsWithReturns(
                                 code
                             );
 
@@ -238,7 +251,10 @@ export class Bundler {
             } else {
                 switch (path) {
                     case FUNCTION_NAME_CSS_TO_STYLE_SHEET:
-                        code = this.#replaceExportsWithReturns(
+                        [
+                            code,
+                            exports
+                        ] = this.#replaceExportsWithReturns(
                             (await this.#readFile(
                                 join(dirname(fileURLToPath(import.meta.url)), "cssToStyleSheet.mjs")
                             ))[0]
@@ -256,7 +272,8 @@ export class Bundler {
 
         return [
             module_id,
-            hash_bang
+            hash_bang,
+            exports
         ];
     }
 
@@ -357,7 +374,7 @@ export class Bundler {
             _has_load_modules = true;
 
             _code = _code.replaceAll(_import, `${FUNCTION_NAME_LOAD_MODULE}(\n    ${JSON.stringify((await this.#bundle(
-                file.startsWith(".") ? join(dirname(path), file) : file,
+                file.startsWith(".") ? join(dirname(path), file).replace(/^([^.])/, (_, char) => `./${char}`) : file,
                 input_mjs_file,
                 output_mjs_file,
                 minify_css,
@@ -376,22 +393,63 @@ export class Bundler {
 
     /**
      * @param {string} code
-     * @returns {string}
+     * @returns {[string, string[]]}
      */
     #replaceExportsWithReturns(code) {
         const exports = [];
 
-        return `${code.replaceAll(/export\s+((async\s+)?(class|const|function|function\*|let|var)\s*(\w+))/g, (_, _export, __, ___, key) => {
-            exports.push(key);
+        return [
+            `${code.replaceAll(/export\s+((async\s+)?(class|const|function|function\*|let|var)\s*(\w+))/g, (_, _export, __, ___, key) => {
+                exports.push([
+                    key,
+                    key
+                ]);
 
-            return _export;
-        }).replaceAll(/export\s*\{\s*([\w\s,]*)\s*\}(\s*;+)?/g, (_, keys) => {
-            for (const key of keys.split(",").map(_key => _key.trim().replaceAll(" as ", ": ")).filter(_key => _key !== "")) {
-                exports.push(key);
-            }
+                return _export;
+            }).replaceAll(/export\s*\{\s*([\w\s,"'`]*)\s*\}(\s*;+)?/g, (_, keys) => {
+                for (const key of keys.split(",").map(_key => {
+                    const parts = _key.split(" as ");
 
-            return "";
-        })}${exports.length > 0 ? `\nreturn {\n${exports.map(key => `    ${key}`).join(",\n")}\n};` : ""}`;
+                    return parts.length > 1 ? [
+                        parts[1].trim(),
+                        `${parts[1].trim()}: ${parts[0].trim()}`
+                    ] : [
+                        parts[0].trim(),
+                        parts[0].trim()
+                    ];
+                }).filter(_key => _key !== "")) {
+                    exports.push(key);
+                }
+
+                return "";
+            }).replaceAll(/export\s+(default)\s/g, (_, _default) => {
+                exports.push([
+                    `${_default}`,
+                    `${_default}: _${_default}`
+                ]);
+
+                return `const _${_default} = `;
+            }).replaceAll(/export\s+((const|let|var)\s*[{[]([^}\]]*)[}\]])/g, (_, _export, __, keys) => {
+                for (const key of keys.split(",").map(_key => {
+                    const parts = _key.split(":");
+
+                    return parts[parts.length > 1 ? 1 : 0].trim();
+                }).filter(_key => _key !== "")) {
+                    exports.push([
+                        key,
+                        key
+                    ]);
+                }
+
+                return _export;
+            })}${exports.length > 0 ? `\nreturn {\n${exports.map(([
+                ,
+                key
+            ]) => `    ${key}`).join(",\n")}\n};` : ""}`,
+            exports.map(([
+                key
+            ]) => key)
+        ];
     }
 
     /**
@@ -416,7 +474,7 @@ export class Bundler {
      * @returns {string}
      */
     #replaceStaticImportsWithDynamicImports(code) {
-        return code.replaceAll(/(import\s*)(\w+)(\s*from)/g, (_, _import, property, from) => `${_import}{\n    default: ${property}\n}${from}`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`]*["'`])\s*assert\s*(\{[^}]*\})/g, (_, properties, path, assert) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path}, { assert: ${assert} })`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`]*["'`])/g, (_, properties, path) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path})`).replaceAll(/(\s|^)import\s*(["'`][^"'`]*["'`])/g, (_, start, path) => `${start}await import(${path})`);
+        return code.replaceAll(/(import\s*)(\w+)(\s*,\s*\{([^}]*)\})?(\s*from)/g, (_, _import, default_property, __, properties = null, from) => `${_import}{\n    default: ${default_property}${properties !== null ? `,\n    ${properties.trim()}` : ""}\n}${from}`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`]*["'`])\s*assert\s*(\{[^}]*\})/g, (_, properties, path, assert) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path}, { assert: ${assert} })`).replaceAll(/import\s*((\w+)\s*,\s*)?\*\s+as\s+(\w+)\s*from\s*(["'`][^"'`]*["'`])/g, (_, __, default_property = null, properties, path) => `const ${default_property !== null ? `{\n    default: ${default_property},\n    ...${properties}\n}` : `${properties}`} = await import(${path})`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`]*["'`])/g, (_, properties, path) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path})`).replaceAll(/(\s|^)import\s*(["'`][^"'`]*["'`])/g, (_, start, path) => `${start}await import(${path})`);
     }
 
     /**

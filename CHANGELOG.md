@@ -6,6 +6,13 @@ Changes:
 
 \-
 
+## v2023-12-20-1
+
+Changes:
+
+- Bundler supports more import and export syntax
+- Bundle exports
+
 ## v2023-12-18-1
 
 Changes:

@@ -1,4 +1,4 @@
-export default await (async modules => {
+await (async modules => {
     const loaded_modules = { /*%INIT_LOADED_MODULES%*/ };
 
     /**
