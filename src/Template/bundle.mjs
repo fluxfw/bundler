@@ -8,7 +8,7 @@ await (async modules => {
     const load_module = async id => {
         loaded_modules[id] ??= (async () => await modules[id](
             load_module
-        ) ?? {})();
+        ) ?? Object.freeze({}))();
 
         return loaded_modules[id];
     };

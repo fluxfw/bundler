@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { chmod, readFile, stat, writeFile } from "node:fs/promises";
+//import { createRequire, isBuiltin } from "node:module";
 import { dirname, extname, join, relative } from "node:path";
 
 const FUNCTION_NAME_CSS_TO_STYLE_SHEET = "cssToStyleSheet";
@@ -105,6 +106,11 @@ export class Bundler {
             let has_load_modules = false;
             let code;
 
+            /*if (!is_file_path && !isBuiltin(path)) {
+                is_file_path = true;
+                path = createRequire(resolve(input_mjs_file)).resolve(path);
+            }*/
+
             if (is_file_path) {
                 switch (_module_type) {
                     case MODULE_TYPE_CSS:
@@ -188,8 +194,13 @@ export class Bundler {
                         ];
                         break;
 
-                    case MODULE_TYPE_JAVASCRIPT:
-                        if (extname(path).substring(1).toLowerCase() === "mjs") {
+                    case MODULE_TYPE_JAVASCRIPT: {
+                        let ext = extname(path).substring(1).toLowerCase();
+
+                        if ([
+                            "js",
+                            "mjs"
+                        ].includes(ext)) {
                             [
                                 code,
                                 hash_bang
@@ -197,51 +208,64 @@ export class Bundler {
                                 path
                             );
 
-                            code = this.#removeJsDocImports(
-                                code
-                            );
+                            if (ext === "js" && (/(\n|^)\s*import\s*(^\()/.test(code) || /(\n|^)\s*export\s/.test(code) || /import\s*\.\s*meta/.test(code))) {
+                                ext = "mjs";
+                            }
 
-                            code = this.#replaceNodeJsOrBrowserDiffImportsToNodeJsImports(
-                                code
-                            );
+                            switch (ext) {
+                                case "mjs":
+                                    code = this.#removeJsDocImports(
+                                        code
+                                    );
 
-                            code = this.#replaceStaticImportsWithDynamicImports(
-                                code
-                            );
+                                    code = this.#replaceNodeJsOrBrowserDiffImportsToNodeJsImports(
+                                        code
+                                    );
 
-                            code = this.#replaceFluxImportsCssWithCssAssertDynamicImports(
-                                code
-                            );
+                                    code = this.#replaceStaticImportsWithDynamicImports(
+                                        code
+                                    );
 
-                            [
-                                code,
-                                exports
-                            ] = this.#replaceExportsWithReturns(
-                                code
-                            );
+                                    code = this.#replaceFluxImportsCssWithCssAssertDynamicImports(
+                                        code
+                                    );
 
-                            [
-                                has_load_modules,
-                                code
-                            ] = await this.#replaceDynamicImportsWithLoadModules(
-                                path,
-                                input_mjs_file,
-                                output_mjs_file,
-                                minify_css,
-                                minify_xml,
-                                module_ids,
-                                modules,
-                                has_load_modules,
-                                code
-                            );
+                                    [
+                                        code,
+                                        exports
+                                    ] = this.#replaceExportsWithReturns(
+                                        code
+                                    );
 
-                            code = this.#correctImportMetaUrls(
-                                relative(dirname(input_mjs_file), path),
-                                code
-                            );
+                                    [
+                                        has_load_modules,
+                                        code
+                                    ] = await this.#replaceDynamicImportsWithLoadModules(
+                                        path,
+                                        input_mjs_file,
+                                        output_mjs_file,
+                                        minify_css,
+                                        minify_xml,
+                                        module_ids,
+                                        modules,
+                                        has_load_modules,
+                                        code
+                                    );
+
+                                    code = this.#correctImportMetaUrls(
+                                        relative(dirname(input_mjs_file), path),
+                                        code
+                                    );
+                                    break;
+
+                                default:
+                                    code = `return import(${JSON.stringify(_path)});`;
+                                    break;
+                            }
                         } else {
                             code = `return import(${JSON.stringify(_path)});`;
                         }
+                    }
                         break;
 
                     default:
@@ -374,7 +398,7 @@ export class Bundler {
             _has_load_modules = true;
 
             _code = _code.replaceAll(_import, `${FUNCTION_NAME_LOAD_MODULE}(\n    ${JSON.stringify((await this.#bundle(
-                file.startsWith(".") ? join(dirname(path), file).replace(/^([^.])/, (_, char) => `./${char}`) : file,
+                file.startsWith(".") ? join(dirname(path), file).replace(/^([^/.])/, (_, char) => `./${char}`) : file,
                 input_mjs_file,
                 output_mjs_file,
                 minify_css,
@@ -406,22 +430,20 @@ export class Bundler {
                 ]);
 
                 return _export;
-            }).replaceAll(/export\s*\{\s*([\w\s,"'`]*)\s*\}(\s*;+)?/g, (_, keys) => {
-                for (const key of keys.split(",").map(_key => {
-                    const parts = _key.split(" as ");
-
-                    return parts.length > 1 ? [
-                        parts[1].trim(),
-                        `${parts[1].trim()}: ${parts[0].trim()}`
-                    ] : [
-                        parts[0].trim(),
-                        parts[0].trim()
-                    ];
-                }).filter(_key => _key !== "")) {
-                    exports.push(key);
+            }).replaceAll(/export\s+((const|let|var)\s*[{[]([^}\]]*)[}\]])/g, (_, _export, __, keys) => {
+                for (const [
+                    key,
+                    as = null
+                ] of keys.split(",").map(_key => _key.split(":").map(part => part.trim())).filter(([
+                    _key
+                ]) => _key !== "")) {
+                    exports.push([
+                        as ?? key,
+                        as ?? key
+                    ]);
                 }
 
-                return "";
+                return _export;
             }).replaceAll(/export\s+(default)\s/g, (_, _default) => {
                 exports.push([
                     `${_default}`,
@@ -429,24 +451,54 @@ export class Bundler {
                 ]);
 
                 return `const _${_default} = `;
-            }).replaceAll(/export\s+((const|let|var)\s*[{[]([^}\]]*)[}\]])/g, (_, _export, __, keys) => {
-                for (const key of keys.split(",").map(_key => {
-                    const parts = _key.split(":");
-
-                    return parts[parts.length > 1 ? 1 : 0].trim();
-                }).filter(_key => _key !== "")) {
+            }).replaceAll(/export\s*\{([^}]*)\}\s*from\s*(["'`][^"'`]*["'`])(\s*;+)?/g, (_, keys, from) => {
+                for (const [
+                    key,
+                    as = null
+                ] of keys.split(",").map(_key => _key.split(" as ").map(part => part.trim())).filter(([
+                    _key
+                ]) => _key !== "")) {
                     exports.push([
+                        as ?? key,
+                        `${key}: (await import(${from})).${as ?? key}`
+                    ]);
+                }
+
+                return "";
+            }).replaceAll(/export\s*\{([^}]*)\}(\s*;+)?/g, (_, keys) => {
+                for (const [
+                    key,
+                    as = null
+                ] of keys.split(",").map(_key => _key.split(" as ").map(part => part.trim())).filter(([
+                    _key
+                ]) => _key !== "")) {
+                    exports.push(as !== null ? [
+                        as,
+                        `${as}: ${key}`
+                    ] : [
                         key,
                         key
                     ]);
                 }
 
-                return _export;
-            })}${exports.length > 0 ? `\nreturn {\n${exports.map(([
+                return "";
+            }).replaceAll(/export\s+\*(\s+as\s+(\w+))?\s+from\s*(["'`][^"'`]*["'`])(\s*;+)?/g, (_, __, key = null, path) => {
+                exports.push(key !== null ? [
+                    key,
+                    `${key}: await import(${path})`
+                ] : [
+                    "",
+                    `...await import(${path})`
+                ]);
+
+                return "";
+            })}${exports.length > 0 ? `\nreturn Object.freeze({\n${exports.map(([
                 ,
                 key
-            ]) => `    ${key}`).join(",\n")}\n};` : ""}`,
-            exports.map(([
+            ]) => `    ${key}`).join(",\n")}\n});` : ""}`,
+            exports.filter(([
+                key
+            ]) => key !== "").map(([
                 key
             ]) => key)
         ];
@@ -474,7 +526,7 @@ export class Bundler {
      * @returns {string}
      */
     #replaceStaticImportsWithDynamicImports(code) {
-        return code.replaceAll(/(import\s*)(\w+)(\s*,\s*\{([^}]*)\})?(\s*from)/g, (_, _import, default_property, __, properties = null, from) => `${_import}{\n    default: ${default_property}${properties !== null ? `,\n    ${properties.trim()}` : ""}\n}${from}`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`]*["'`])\s*assert\s*(\{[^}]*\})/g, (_, properties, path, assert) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path}, { assert: ${assert} })`).replaceAll(/import\s*((\w+)\s*,\s*)?\*\s+as\s+(\w+)\s*from\s*(["'`][^"'`]*["'`])/g, (_, __, default_property = null, properties, path) => `const ${default_property !== null ? `{\n    default: ${default_property},\n    ...${properties}\n}` : `${properties}`} = await import(${path})`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`]*["'`])/g, (_, properties, path) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path})`).replaceAll(/(\s|^)import\s*(["'`][^"'`]*["'`])/g, (_, start, path) => `${start}await import(${path})`);
+        return code.replaceAll(/(import\s*)(\w+)(\s*,\s*\{([^}]*)\})?(\s*from)/g, (_, _import, default_property, __, properties = null, from) => `${_import}{\n    default: ${default_property}${properties !== null ? `,\n    ${properties.trim()}` : ""}\n}${from}`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`]*["'`])\s*assert\s*(\{[^}]*\})/g, (_, properties, path, assert) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path}, { assert: ${assert} })`).replaceAll(/import\s*((\w+)\s*,\s*)?\*\s+as\s+(\w+)\s+from\s*(["'`][^"'`]*["'`])/g, (_, __, default_property = null, properties, path) => `const ${default_property !== null ? `{\n    default: ${default_property},\n    ...${properties}\n}` : `${properties}`} = await import(${path})`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`]*["'`])/g, (_, properties, path) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path})`).replaceAll(/(\s|^)import\s*(["'`][^"'`]*["'`])/g, (_, start, path) => `${start}await import(${path})`);
     }
 
     /**

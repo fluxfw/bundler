@@ -6,6 +6,14 @@ Changes:
 
 \-
 
+## v2023-12-21-1
+
+Changes:
+
+- Bundler supports more export syntax
+- Supports bundle `.js` files if `import` / `export` syntax is detected
+- First bundle support using dynamic loading from `node_modules` (Disabled)
+
 ## v2023-12-20-1
 
 Changes:
