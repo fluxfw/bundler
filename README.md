@@ -1,3 +1,3 @@
-# flux-pwa-generator
+# flux-build-utils
 
-Generate PWA
+Some utils for build

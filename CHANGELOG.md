@@ -6,6 +6,18 @@ Changes:
 
 \-
 
+## v2024-01-09-1
+
+Changes:
+
+- Renamed to `flux-build-utils`
+- Always pass exports from root module if export names could detected (Removed option)
+- Use NodeJS's `require.resolve` for every import detected
+- Always use `node:` prefix for NodeJS native modules for not add it doubled
+- First bundler supports CommonJS - But most will break due use `require` in non-`async` functions replaced with `await ...`, so those can disabled via `exclude_modules` option
+- Improved/Fixed some exports syntax
+- Generates shorts return arrow functions if only has a return (NodeJS native modules, exluded modules or JSON)
+
 ## v2023-12-21-1
 
 Changes:
