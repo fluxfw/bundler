@@ -77,7 +77,7 @@ export class GenerateServiceWorker {
             } : null,
             APPLICATION_CACHE_VERSION: crypto.randomUUID(),
             ...application_cache_prefix !== null ? {
-                SKIP_WAITING: (await import("../../flux-pwa/src/Pwa/SKIP_WAITING.mjs")).SKIP_WAITING
+                SKIP_WAITING: (await import("flux-pwa/src/Pwa/SKIP_WAITING.mjs")).SKIP_WAITING
             } : null
         })));
     }

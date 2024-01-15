@@ -1,5 +1,5 @@
 import { APPLICATION_CACHE_PREFIX } from "./Cache/CACHE.mjs";
-import { SKIP_WAITING } from "./Libs/flux-pwa/src/Pwa/SKIP_WAITING.mjs";
+import { SKIP_WAITING } from "flux-pwa/src/Pwa/SKIP_WAITING.mjs";
 
 const {
     APPLICATION_CACHE_FILES,

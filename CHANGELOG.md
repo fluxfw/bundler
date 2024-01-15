@@ -6,6 +6,18 @@ Changes:
 
 \-
 
+## v2024-01-15-1
+
+Changes:
+
+- Load libraries using NodeJS's module resolver
+- Load json using import attributes
+- Bundler: Replace import assertions with import attributes
+- Bundler: Use NodeJS's `require.resolve` for urls in css too
+- Bundler: Only add `(` `)` on shorts return arrow functions if needed
+- Bundler: Remove unused `load_module` param on css
+- Bundler: Remove `FluxImportCss`
+
 ## v2024-01-09-1
 
 Changes:

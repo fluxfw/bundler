@@ -74,10 +74,10 @@ export class Bundler {
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: number | string}} module_ids
      * @param {string[] | {[key: string]: string}} modules
-     * @param {string | null} assert_type
+     * @param {string | null} with_type
      * @returns {Promise<[number | string, string | null, string[]]>}
      */
-    async #bundle(path, input_file, exclude_modules, minify_css, minify_xml, module_ids, modules, assert_type = null) {
+    async #bundle(path, input_file, exclude_modules, minify_css, minify_xml, module_ids, modules, with_type = null) {
         let relative_path;
         switch (true) {
             case isBuiltin(path):
@@ -112,15 +112,15 @@ export class Bundler {
                     break;
 
                 default:
-                    switch (assert_type) {
-                        case "css":
-                            has_load_modules = true;
-
+                    switch (with_type) {
+                        case "css": {
                             [
                                 code
                             ] = await this.#readFile(
                                 path
                             );
+
+                            const require = createRequire(path);
 
                             for (const [
                                 _url,
@@ -130,7 +130,7 @@ export class Bundler {
                                     continue;
                                 }
 
-                                const _file = join(dirname(path), file);
+                                const _file = require.resolve(file);
 
                                 const [
                                     ext,
@@ -172,6 +172,7 @@ export class Bundler {
                             exports = [
                                 "default"
                             ];
+                        }
                             break;
 
                         case "json":
@@ -204,7 +205,7 @@ export class Bundler {
                             );
 
                             if (ext === "js") {
-                                ext = /(\n|^)\s*import\s*(^\()/.test(code) || /(\n|^)\s*export\s/.test(code) || /import\s*\.\s*meta/.test(code) ? "mjs" : "cjs";
+                                ext = /(^|\n)\s*import\s*[^(]/.test(code) || /(^|\n)\s*export\s/.test(code) || /import\s*\.\s*meta/.test(code) ? "mjs" : "cjs";
                             }
 
                             if (ext === "cjs") {
@@ -226,15 +227,7 @@ export class Bundler {
                                 );
                             }
 
-                            code = this.#replaceNodeJsOrBrowserDiffImportsToNodeJsImports(
-                                code
-                            );
-
                             code = this.#replaceStaticImportsWithDynamicImports(
-                                code
-                            );
-
-                            code = this.#replaceFluxImportsCssWithCssAssertDynamicImports(
                                 code
                             );
 
@@ -272,7 +265,7 @@ export class Bundler {
 
             code = code.trim();
 
-            modules[module_id] = `${Array.isArray(modules) ? `        // ${module_id} - ${relative_path}\n        ` : ""}async ${has_load_modules ? "__load_module__" : "()"} => ${!code.startsWith("return ") ? `{\n${code}\n        }` : `(${code.replaceAll(/(^return |;$)/g, "")})`}`;
+            modules[module_id] = `${Array.isArray(modules) ? `        // ${module_id} - ${relative_path}\n        ` : ""}async ${has_load_modules ? "__load_module__" : "()"} => ${!code.startsWith("return ") ? `{\n${code}\n        }` : `${code.includes("{") ? "(" : ""}${code.replaceAll(/(^return |;$)/g, "")}${code.includes("{") ? ")" : ""}`}`;
         }
 
         return [
@@ -312,7 +305,7 @@ export class Bundler {
 
         return [
             ext,
-            Object.entries((await import("mime-db")).default).find(([
+            Object.entries((await import("mime-db/db.json", { with: { type: "json" } })).default).find(([
                 ,
                 value
             ]) => value?.extensions?.includes(ext) ?? false)?.[0] ?? ""
@@ -362,10 +355,10 @@ export class Bundler {
             _import,
             start,
             file,
-            assert_type = null
+            with_type = null
         ] of [
-                ..._code.matchAll(/(^|[\s(])import\s*\(\s*["'`]([^"'`\n]+)["'`]\s*\)/g),
-                ..._code.matchAll(/(^|[\s(])import\s*\(\s*["'`]([^"'`\n]+)["'`]\s*,\s*\{\s*assert\s*:\s*\{\s*type\s*:\s*["'`]([^"'`\n]+)["'`]\s*\}\s*\}\s*\)/g)
+                ..._code.matchAll(/(^|[\s(,=])import\s*\(\s*["'`]([^"'`\n]+)["'`]\s*\)/g),
+                ..._code.matchAll(/(^|[\s(,=])import\s*\(\s*["'`]([^"'`\n]+)["'`]\s*,\s*\{\s*with\s*:\s*\{\s*type\s*:\s*["'`]([^"'`\n]+)["'`]\s*\}\s*\}\s*\)/g)
             ]) {
             if (!_code.includes(_import)) {
                 continue;
@@ -381,7 +374,7 @@ export class Bundler {
                 minify_xml,
                 module_ids,
                 modules,
-                assert_type
+                with_type
             ))[0])})`);
         }
 
@@ -510,15 +503,6 @@ export class Bundler {
     /**
      * @param {string} code
      * @returns {string}
-     * @deprecated
-     */
-    #replaceFluxImportsCssWithCssAssertDynamicImports(code) {
-        return code.replaceAll(/await\s+flux_import_css\s*\.\s*import\s*\(\s*`\$\{\s*import\s*\.\s*meta\s*\.\s*url\s*\.\s*substring\s*\(\s*0\s*,\s*import\s*\.\s*meta\s*\.\s*url\s*\.\s*lastIndexOf\s*\(\s*"\/"\s*\)\s*\)\s*\}/g, "await flux_import_css.import(\n    `.").replaceAll(/(let|var)\s*flux_import_css\s*=\s*null\s*;*([\w\s=;]+)?\s*try\s*\{\s*\(\s*\{\s*flux_import_css\s*\}\s*=\s*await\s+import\s*\(\s*["'`][^"'`\n]+["'`]\s*\)\s*\)\s*;*\s*\}\s*catch\s*\(\s*\w+\s*\)\s*\{\s*[^\n}]*\s*\}\s*if\s*\(\s*flux_import_css\s*!==\s*null\s*\)\s*\{\s*([^}]*)\s*\}/g, (_, __, variables, _import) => `${variables ?? ""}${_import.trim()}`).replaceAll(/await\s+flux_import_css\s*\.\s*import\s*\(\s*(["'`][^"'`\n]+["'`])\s*\)/g, (_, path) => `(await import(${path}, { assert: { type: "css" } })).default`).replaceAll(/\s*(const|let|var)\s*\{\s*flux_import_css\s*\}\s*=\s*await\s+import\s*\(\s*["'`][^"'`\n]+["'`]\s*\)\s*;*\s*/g, "");
-    }
-
-    /**
-     * @param {string} code
-     * @returns {string}
      */
     #replaceMisleadingKeywordsInComments(code) {
         return code.replaceAll(/(\/\*[\s\S]*?\*\/|\/\/[^\n]*(\n|$))/g, comment => comment.replaceAll(/__dirname|__filename|export|import|require/g, keyword => `__${keyword}__`));
@@ -528,16 +512,8 @@ export class Bundler {
      * @param {string} code
      * @returns {string}
      */
-    #replaceNodeJsOrBrowserDiffImportsToNodeJsImports(code) {
-        return code.replaceAll(/(import\s*\(\s*["'`][./]*)\$\{\s*typeof\s+process\s*!==\s*["'`]undefined["'`]\s*\?\s*["'`]([^"'`\n]+)["'`]\s*:\s*["'`][^"'`\n]+["'`]\s*\}/g, (_, start, path) => `${start}${path}`);
-    }
-
-    /**
-     * @param {string} code
-     * @returns {string}
-     */
     #replaceRequiresWithDynamicImports(code) {
-        return code.replaceAll(/(^|[\s(])require\s*\(\s*(["'`]([^"'`\n]+)["'`])\s*\)/g, (_, start, path, _path) => `${start}(await import(${path}${extname(_path).substring(1).toLowerCase() === "json" ? ", { assert: { type: \"json\" } })).default" : "))"}`);
+        return code.replaceAll(/(^|[\s(,=])require\s*\(\s*(["'`]([^"'`\n]+)["'`])\s*\)/g, (_, start, path, _path) => `${start}(await import(${path}${extname(_path).substring(1).toLowerCase() === "json" ? ", { with: { type: \"json\" } })).default" : "))"}`);
     }
 
     /**
@@ -545,6 +521,6 @@ export class Bundler {
      * @returns {string}
      */
     #replaceStaticImportsWithDynamicImports(code) {
-        return code.replaceAll(/(import\s*)(\w+)(\s*,\s*\{([^}]*)\})?(\s*from)/g, (_, _import, default_property, __, properties = null, from) => `${_import}{\n    default: ${default_property}${properties !== null ? `,\n    ${properties.trim()}` : ""}\n}${from}`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`\n]+["'`])\s*assert\s*(\{[^}]*\})/g, (_, properties, path, assert) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path}, { assert: ${assert} })`).replaceAll(/import\s*((\w+)\s*,\s*)?\*\s+as\s+(\w+)\s+from\s*(["'`][^"'`\n]+["'`])/g, (_, __, default_property = null, properties, path) => `const ${default_property !== null ? `{\n    default: ${default_property},\n    ...${properties}\n}` : `${properties}`} = await import(${path})`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`\n]+["'`])/g, (_, properties, path) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path})`).replaceAll(/(\s|^)import\s*(["'`][^"'`\n]+["'`])/g, (_, start, path) => `${start}await import(${path})`);
+        return code.replaceAll(/(import\s*)(\w+)(\s*,\s*\{([^}]*)\})?(\s*from)/g, (_, _import, default_property, __, properties = null, from) => `${_import}{\n    default: ${default_property}${properties !== null ? `,\n    ${properties.trim()}` : ""}\n}${from}`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`\n]+["'`])\s*with\s*(\{[^}]*\})/g, (_, properties, path, _with) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path}, { with: ${_with} })`).replaceAll(/import\s*((\w+)\s*,\s*)?\*\s+as\s+(\w+)\s+from\s*(["'`][^"'`\n]+["'`])/g, (_, __, default_property = null, properties, path) => `const ${default_property !== null ? `{\n    default: ${default_property},\n    ...${properties}\n}` : `${properties}`} = await import(${path})`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`\n]+["'`])/g, (_, properties, path) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path})`).replaceAll(/(^|\s)import\s*(["'`][^"'`\n]+["'`])/g, (_, start, path) => `${start}await import(${path})`);
     }
 }
