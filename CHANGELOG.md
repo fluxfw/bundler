@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-01-19-1
+
+Changes:
+
+- Bundler: Remove change `import.meta.url`
+
 ## v2024-01-15-1
 
 Changes:

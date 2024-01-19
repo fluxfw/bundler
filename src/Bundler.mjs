@@ -216,7 +216,7 @@ export class Bundler {
                                 const __dirname = code.includes("__dirname");
                                 const __filename = code.includes("__filename");
 
-                                code = `${__dirname ? `let { dirname, join } = await ${"i"}mport("node:path");\n` : ""}${__dirname || __filename ? `let { fileURLToPath } = await ${"i"}mport("node:url");\n` : ""}let module = { exports: {} };\nlet exports = module.exports;${__filename ? "\nlet __filename = fileURLToPath(import.meta.url);" : ""}${__dirname ? `\nlet __dirname = join(dirname(fileURLToPath(${"i"}mport.meta.url)));` : ""}\n${code}\nmodule.exports.default = module.exports;\nreturn module.exports;`;
+                                code = `${__dirname ? `let { dirname } = await ${"i"}mport("node:path");\n` : ""}${__dirname || __filename ? `let { fileURLToPath } = await ${"i"}mport("node:url");\n` : ""}let module = { exports: {} };\nlet exports = module.exports;${__dirname || __filename ? "\nlet __filename = fileURLToPath(import.meta.url);" : ""}${__dirname ? `\nlet __dirname = dirname(__filename);` : ""}\n${code}\nmodule.exports.default = module.exports;\nreturn module.exports;`;
 
                                 code = this.#replaceRequiresWithDynamicImports(
                                     code
@@ -252,11 +252,6 @@ export class Bundler {
                                 has_load_modules,
                                 code
                             );
-
-                            code = this.#correctImportMetaUrls(
-                                relative_path,
-                                code
-                            );
                         }
                             break;
                     }
@@ -273,27 +268,6 @@ export class Bundler {
             hash_bang,
             exports
         ];
-    }
-
-    /**
-     * @param {string} relative_path
-     * @param {string} code
-     * @returns {string}
-     */
-    #correctImportMetaUrls(relative_path, code) {
-        return code.replaceAll(/(\$\{\s*import\s*\.\s*meta\s*\.\s*url\s*\.\s*substring\s*\(\s*0\s*,\s*import\s*\.\s*meta\s*\.\s*url\s*\.\s*lastIndexOf\s*\(\s*"\/"\s*\)\s*\)\s*\})\/*/g, (_, import_meta_url) => {
-            const relatives = dirname(relative_path);
-
-            return `${import_meta_url}/${relatives !== "." ? `${relatives}/` : ""}`;
-        }).replaceAll(/(join\s*\()?dirname\s*\(fileURLToPath\s*\(\s*import\s*\.\s*meta\s*\.\s*url\s*\)\s*\)/g, (import_meta_url, _join = null) => {
-            const relatives = dirname(relative_path);
-
-            if (relatives === ".") {
-                return import_meta_url;
-            }
-
-            return _join !== null ? `${import_meta_url}, ${JSON.stringify(relatives)}` : `\`\${${import_meta_url}}/${relatives}\``;
-        });
     }
 
     /**
