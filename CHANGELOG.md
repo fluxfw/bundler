@@ -6,6 +6,15 @@ Changes:
 
 \-
 
+## v2024-01-25-1
+
+Changes:
+
+- Bundler: Keep import code of not bundled modules directly (NodeJS's built-in modules or exclude modules)
+- Bundler: Use NodeJS's `require.resolve` for input path too
+- Bundler: Check exclude modules as folder too
+- Bundler: Remove path from module comment on non-`dev_mode`
+
 ## v2024-01-19-1
 
 Changes:

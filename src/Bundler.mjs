@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { chmod, readFile, stat, writeFile } from "node:fs/promises";
 import { createRequire, isBuiltin } from "node:module";
-import { dirname, extname, join, relative, resolve } from "node:path";
+import { dirname, extname, join } from "node:path";
 
 export class Bundler {
     /**
@@ -20,7 +20,7 @@ export class Bundler {
     }
 
     /**
-     * @param {string} input_file
+     * @param {string} input_path
      * @param {string} output_file
      * @param {string[] | null} exclude_modules
      * @param {((css: string) => Promise<string>) | null} minify_css
@@ -29,24 +29,18 @@ export class Bundler {
      * @param {boolean | null} no_top_level_await
      * @returns {Promise<void>}
      */
-    async bundle(input_file, output_file, exclude_modules = null, minify_css = null, minify_xml = null, dev_mode = null, no_top_level_await = null) {
+    async bundle(input_path, output_file, exclude_modules = null, minify_css = null, minify_xml = null, dev_mode = null, no_top_level_await = null) {
         console.log(`Bundle ${output_file}`);
 
         const _dev_mode = dev_mode ?? false;
 
-        const mode = !existsSync(output_file) ? (await stat(input_file)).mode : null;
-
         const module_ids = {};
 
-        const modules = _dev_mode ?? false ? {} : [];
+        const modules = _dev_mode ? {} : [];
 
-        const [
-            module_id,
-            hash_bang,
-            _exports
-        ] = await this.#bundle(
-            resolve(input_file),
-            input_file,
+        const result = await this.#bundle(
+            join(process.cwd(), ".mjs"),
+            input_path,
             exclude_modules ?? [],
             !_dev_mode ? minify_css : null,
             !_dev_mode ? minify_xml : null,
@@ -54,9 +48,15 @@ export class Bundler {
             modules
         );
 
+        if (result === null) {
+            throw Error(`Invalid input path ${input_path}`);
+        }
+
+        const mode = !existsSync(output_file) ? (await stat(result[3])).mode : null;
+
         const code = await readFile(join(dirname(fileURLToPath(import.meta.url)), "Template", "bundle.mjs"), "utf8");
 
-        await writeFile(output_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${(no_top_level_await ?? false ? code.replace(/^await /, "") : _exports.length > 0 ? _exports.length === 1 && _exports[0] === "default" ? `${"e"}xport default (${code.replace(/;\n$/, "")}).default;\n` : _exports.includes("default") ? `const __exports__ = ${code}\n${"e"}xport default __exports__.default;\n${"e"}xport const { ${_exports.filter(key => key !== "default").map(key => `    ${key}`).join(", ")} } = __exports__;\n` : `${"e"}xport const { ${_exports.map(key => `    ${key}`).join(", ")} } = ${code}` : code).replaceAll("/*%ROOT_MODULE_ID%*/", JSON.stringify(module_id)).replaceAll("{ /*%INIT_LOADED_MODULES%*/ }", Array.isArray(modules) ? "[]" : "{}").replaceAll("{ /*%MODULES%*/ }", () => Array.isArray(modules) ? `[\n${modules.join(",\n")}\n    ]` : `{\n${Object.entries(modules).map(([
+        await writeFile(output_file, `${result[1] !== null ? `${result[1]}\n` : ""}${(no_top_level_await ?? false ? code.replace(/^await /, "") : result[2].length > 0 ? result[2].length === 1 && result[2][0] === "default" ? `${"e"}xport default (${code.replace(/;\n$/, "")}).default;\n` : result[2].includes("default") ? `const __exports__ = ${code}\n${"e"}xport default __exports__.default;\n${"e"}xport const { ${result[2].filter(key => key !== "default").join(", ")} } = __exports__;\n` : `${"e"}xport const { ${result[2].join(", ")} } = ${code}` : code).replaceAll("/*%ROOT_MODULE_ID%*/", JSON.stringify(result[0])).replaceAll("{ /*%INIT_LOADED_MODULES%*/ }", Array.isArray(modules) ? "[]" : "{}").replaceAll("{ /*%MODULES%*/ }", () => Array.isArray(modules) ? `[\n${modules.join(",\n")}\n    ]` : `{\n${Object.entries(modules).map(([
             _module_id,
             module
         ]) => `        ${JSON.stringify(_module_id)}: ${module}`).join(",\n")}\n    }`)}`);
@@ -67,34 +67,39 @@ export class Bundler {
     }
 
     /**
+     * @param {string} parent_path
      * @param {string} path
-     * @param {string} input_file
      * @param {string[]} exclude_modules
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: number | string}} module_ids
      * @param {string[] | {[key: string]: string}} modules
      * @param {string | null} with_type
-     * @returns {Promise<[number | string, string | null, string[]]>}
+     * @returns {Promise<[number | string, string | null, string[] | string] | null>}
      */
-    async #bundle(path, input_file, exclude_modules, minify_css, minify_xml, module_ids, modules, with_type = null) {
-        let relative_path;
-        switch (true) {
-            case isBuiltin(path):
-                relative_path = !path.startsWith("node:") ? `node:${path}` : path;
-                break;
-
-            case exclude_modules.includes(path):
-                relative_path = path;
-                break;
-
-            default:
-                relative_path = relative(dirname(input_file), path);
-                break;
+    async #bundle(parent_path, path, exclude_modules, minify_css, minify_xml, module_ids, modules, with_type = null) {
+        if (isBuiltin(path) || this.#isExcludedModule(
+            exclude_modules,
+            path
+        )) {
+            return null;
         }
 
-        module_ids[relative_path] ??= Array.isArray(modules) ? modules.length : relative_path;
-        const module_id = module_ids[relative_path];
+        const absolute_path = createRequire(parent_path).resolve(path);
+
+        if (this.#isExcludedModule(
+            exclude_modules,
+            absolute_path
+        ) || (with_type === null && ![
+            "cjs",
+            "js",
+            "mjs"
+        ].includes(extname(absolute_path).substring(1).toLowerCase()))) {
+            return null;
+        }
+
+        module_ids[absolute_path] ??= Array.isArray(modules) ? modules.length : absolute_path;
+        const module_id = module_ids[absolute_path];
 
         let hash_bang = null;
         let exports = [];
@@ -105,168 +110,143 @@ export class Bundler {
             let has_load_modules = false;
             let code;
 
-            switch (true) {
-                case isBuiltin(path):
-                case exclude_modules.includes(path):
-                    code = `return import(${JSON.stringify(relative_path)});`;
+            switch (with_type) {
+                case "css":
+                    [
+                        code
+                    ] = await this.#readFile(
+                        absolute_path
+                    );
+
+                    for (const [
+                        _url,
+                        _path
+                    ] of code.matchAll(/url\(["']?([^"']+)["']?\)/g)) {
+                        if (!code.includes(_url) || _path.startsWith("data:")) {
+                            continue;
+                        }
+
+                        const _absolute_path = createRequire(absolute_path).resolve(_path);
+
+                        const [
+                            ext,
+                            mime_type
+                        ] = await this.#getMimeType(
+                            _absolute_path
+                        );
+
+                        let data;
+                        if (ext === "svg") {
+                            [
+                                data
+                            ] = await this.#readFile(
+                                _absolute_path
+                            );
+
+                            if (minify_xml !== null) {
+                                data = await minify_xml(
+                                    data
+                                );
+                            }
+
+                            data = btoa(data);
+                        } else {
+                            data = await readFile(_absolute_path, "base64");
+                        }
+
+                        code = code.replaceAll(_url, `url("data:${mime_type};base64,${data}")`);
+                    }
+
+                    if (minify_css !== null) {
+                        code = await minify_css(
+                            code
+                        );
+                    }
+
+                    code = `const __style_sheet__ = new CSSStyleSheet();\n__style_sheet__.replaceSync(${JSON.stringify(code)});\nreturn { default: __style_sheet__ };`;
+
+                    exports = [
+                        "default"
+                    ];
                     break;
 
-                default:
-                    switch (with_type) {
-                        case "css": {
-                            [
-                                code
-                            ] = await this.#readFile(
-                                path
-                            );
+                case "json":
+                    code = `return { default: ${(await this.#readFile(
+                        absolute_path
+                    ))[0]} };`;
 
-                            const require = createRequire(path);
+                    exports = [
+                        "default"
+                    ];
+                    break;
 
-                            for (const [
-                                _url,
-                                file
-                            ] of code.matchAll(/url\(["']?([^"']+)["']?\)/g)) {
-                                if (!code.includes(_url) || file.startsWith("data:")) {
-                                    continue;
-                                }
+                default: {
+                    [
+                        code,
+                        hash_bang
+                    ] = await this.#readFile(
+                        absolute_path
+                    );
 
-                                const _file = require.resolve(file);
+                    let ext = extname(absolute_path).substring(1).toLowerCase();
 
-                                const [
-                                    ext,
-                                    mime_type
-                                ] = await this.#getMimeType(
-                                    file
-                                );
-
-                                let data;
-                                if (ext === "svg") {
-                                    [
-                                        data
-                                    ] = await this.#readFile(
-                                        _file
-                                    );
-
-                                    if (minify_xml !== null) {
-                                        data = await minify_xml(
-                                            data
-                                        );
-                                    }
-
-                                    data = btoa(data);
-                                } else {
-                                    data = await readFile(_file, "base64");
-                                }
-
-                                code = code.replaceAll(_url, `url("data:${mime_type};base64,${data}")`);
-                            }
-
-                            if (minify_css !== null) {
-                                code = await minify_css(
-                                    code
-                                );
-                            }
-
-                            code = `const __style_sheet__ = new CSSStyleSheet();\n__style_sheet__.replaceSync(${JSON.stringify(code)});\nreturn { default: __style_sheet__ };`;
-
-                            exports = [
-                                "default"
-                            ];
-                        }
-                            break;
-
-                        case "json":
-                            code = `return { default: ${(await this.#readFile(
-                                path
-                            ))[0]} };`;
-
-                            exports = [
-                                "default"
-                            ];
-                            break;
-
-                        default: {
-                            let ext = extname(path).substring(1).toLowerCase();
-
-                            if (![
-                                "cjs",
-                                "js",
-                                "mjs"
-                            ].includes(ext)) {
-                                code = `return import(${JSON.stringify(relative_path)});`;
-                                break;
-                            }
-
-                            [
-                                code,
-                                hash_bang
-                            ] = await this.#readFile(
-                                path
-                            );
-
-                            if (ext === "js") {
-                                ext = /(^|\n)\s*import\s*[^(]/.test(code) || /(^|\n)\s*export\s/.test(code) || /import\s*\.\s*meta/.test(code) ? "mjs" : "cjs";
-                            }
-
-                            if (ext === "cjs") {
-                                code = this.#replaceMisleadingKeywordsInComments(
-                                    code
-                                );
-
-                                const __dirname = code.includes("__dirname");
-                                const __filename = code.includes("__filename");
-
-                                code = `${__dirname ? `let { dirname } = await ${"i"}mport("node:path");\n` : ""}${__dirname || __filename ? `let { fileURLToPath } = await ${"i"}mport("node:url");\n` : ""}let module = { exports: {} };\nlet exports = module.exports;${__dirname || __filename ? "\nlet __filename = fileURLToPath(import.meta.url);" : ""}${__dirname ? `\nlet __dirname = dirname(__filename);` : ""}\n${code}\nmodule.exports.default = module.exports;\nreturn module.exports;`;
-
-                                code = this.#replaceRequiresWithDynamicImports(
-                                    code
-                                );
-                            } else {
-                                code = this.#replaceMisleadingKeywordsInComments(
-                                    code
-                                );
-                            }
-
-                            code = this.#replaceStaticImportsWithDynamicImports(
-                                code
-                            );
-
-                            [
-                                code,
-                                exports
-                            ] = this.#replaceExportsWithReturns(
-                                code
-                            );
-
-                            [
-                                has_load_modules,
-                                code
-                            ] = await this.#replaceDynamicImportsWithLoadModules(
-                                path,
-                                input_file,
-                                exclude_modules,
-                                minify_css,
-                                minify_xml,
-                                module_ids,
-                                modules,
-                                has_load_modules,
-                                code
-                            );
-                        }
-                            break;
+                    if (ext === "js") {
+                        ext = /(^|\n)\s*import\s*[^(]/.test(code) || /(^|\n)\s*export\s/.test(code) || /import\s*\.\s*meta/.test(code) ? "mjs" : "cjs";
                     }
+
+                    code = this.#replaceMisleadingKeywordsInComments(
+                        code
+                    );
+
+                    if (ext === "cjs") {
+                        const __dirname = code.includes("__dirname");
+                        const __filename = code.includes("__filename");
+
+                        code = `${__dirname ? `let { dirname } = await ${"i"}mport("node:path");\n` : ""}${__dirname || __filename ? `let { fileURLToPath } = await ${"i"}mport("node:url");\n` : ""}let module = { exports: {} };\nlet exports = module.exports;${__dirname || __filename ? "\nlet __filename = fileURLToPath(import.meta.url);" : ""}${__dirname ? "\nlet __dirname = dirname(__filename);" : ""}\n${code}\nmodule.exports.default = module.exports;\nreturn module.exports;`;
+
+                        code = this.#replaceRequiresWithDynamicImports(
+                            code
+                        );
+                    }
+
+                    code = this.#replaceStaticImportsWithDynamicImports(
+                        code
+                    );
+
+                    [
+                        code,
+                        exports
+                    ] = this.#replaceExportsWithReturns(
+                        code
+                    );
+
+                    [
+                        has_load_modules,
+                        code
+                    ] = await this.#replaceDynamicImportsWithLoadModules(
+                        absolute_path,
+                        exclude_modules,
+                        minify_css,
+                        minify_xml,
+                        module_ids,
+                        modules,
+                        has_load_modules,
+                        code
+                    );
+                }
                     break;
             }
 
             code = code.trim();
 
-            modules[module_id] = `${Array.isArray(modules) ? `        // ${module_id} - ${relative_path}\n        ` : ""}async ${has_load_modules ? "__load_module__" : "()"} => ${!code.startsWith("return ") ? `{\n${code}\n        }` : `${code.includes("{") ? "(" : ""}${code.replaceAll(/(^return |;$)/g, "")}${code.includes("{") ? ")" : ""}`}`;
+            modules[module_id] = `${Array.isArray(modules) ? `        // ${module_id}\n        ` : ""}async ${has_load_modules ? "__load_module__" : "()"} => ${!code.startsWith("return ") ? `{\n${code}\n        }` : `${code.includes("{") ? "(" : ""}${code.replaceAll(/(^return |;$)/g, "")}${code.includes("{") ? ")" : ""}`}`;
         }
 
         return [
             module_id,
             hash_bang,
-            exports
+            exports,
+            absolute_path
         ];
     }
 
@@ -284,6 +264,19 @@ export class Bundler {
                 value
             ]) => value?.extensions?.includes(ext) ?? false)?.[0] ?? ""
         ];
+    }
+
+    /**
+     * @param {string[]} exclude_modules
+     * @param {string} path
+     * @returns {boolean}
+     */
+    #isExcludedModule(exclude_modules, path) {
+        if (path.startsWith(".")) {
+            return false;
+        }
+
+        return exclude_modules.some(exclude_module => exclude_module === path || path.startsWith(`${exclude_module}/`));
     }
 
     /**
@@ -308,27 +301,24 @@ export class Bundler {
     }
 
     /**
-     * @param {string} path
-     * @param {string} input_file
+     * @param {string} parent_path
      * @param {string[]} exclude_modules
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: number}} module_ids
-     * @param {string[]} modules
+     * @param {string[] | {[key: string]: string}} modules
      * @param {boolean} has_load_modules
      * @param {string} code
      * @returns {Promise<[boolean, string]>}
      */
-    async #replaceDynamicImportsWithLoadModules(path, input_file, exclude_modules, minify_css, minify_xml, module_ids, modules, has_load_modules, code) {
+    async #replaceDynamicImportsWithLoadModules(parent_path, exclude_modules, minify_css, minify_xml, module_ids, modules, has_load_modules, code) {
         let _has_load_modules = has_load_modules;
         let _code = code;
-
-        const require = createRequire(path);
 
         for (const [
             _import,
             start,
-            file,
+            path,
             with_type = null
         ] of [
                 ..._code.matchAll(/(^|[\s(,=])import\s*\(\s*["'`]([^"'`\n]+)["'`]\s*\)/g),
@@ -338,18 +328,24 @@ export class Bundler {
                 continue;
             }
 
-            _has_load_modules = true;
-
-            _code = _code.replaceAll(_import, `${start}__load_module__(${JSON.stringify((await this.#bundle(
-                !exclude_modules.includes(file) ? require.resolve(file) : file,
-                input_file,
+            const result = await this.#bundle(
+                parent_path,
+                path,
                 exclude_modules,
                 minify_css,
                 minify_xml,
                 module_ids,
                 modules,
                 with_type
-            ))[0])})`);
+            );
+
+            if (result === null) {
+                continue;
+            }
+
+            _has_load_modules = true;
+
+            _code = _code.replaceAll(_import, `${start}__load_module__(${JSON.stringify(result[0])})`);
         }
 
         return [
