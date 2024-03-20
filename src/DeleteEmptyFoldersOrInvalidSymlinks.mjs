@@ -4,9 +4,9 @@ import { lstat, readdir, rmdir, unlink } from "node:fs/promises";
 
 export class DeleteEmptyFoldersOrInvalidSymlinks {
     /**
-     * @returns {DeleteEmptyFoldersOrInvalidSymlinks}
+     * @returns {Promise<DeleteEmptyFoldersOrInvalidSymlinks>}
      */
-    static new() {
+    static async new() {
         return new this();
     }
 

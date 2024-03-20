@@ -9,11 +9,11 @@ export class DeleteExcludedFiles {
     #file_filter;
 
     /**
-     * @returns {DeleteExcludedFiles}
+     * @returns {Promise<DeleteExcludedFiles>}
      */
-    static new() {
+    static async new() {
         return new this(
-            FileFilter.new()
+            await FileFilter.new()
         );
     }
 

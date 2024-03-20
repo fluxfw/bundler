@@ -10,9 +10,9 @@ export class GenerateManifestJsons {
 
     /**
      * @param {Localization | null} localization
-     * @returns {GenerateManifestJsons}
+     * @returns {Promise<GenerateManifestJsons>}
      */
-    static new(localization = null) {
+    static async new(localization = null) {
         return new this(
             localization
         );

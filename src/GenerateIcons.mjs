@@ -4,9 +4,9 @@ import { dirname, extname, join } from "node:path";
 
 export class GenerateIcons {
     /**
-     * @returns {GenerateIcons}
+     * @returns {Promise<GenerateIcons>}
      */
-    static new() {
+    static async new() {
         return new this();
     }
 

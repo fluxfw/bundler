@@ -11,9 +11,9 @@ export class GenerateIndexHtmls {
 
     /**
      * @param {Localization | null} localization
-     * @returns {GenerateIndexHtmls}
+     * @returns {Promise<GenerateIndexHtmls>}
      */
-    static new(localization = null) {
+    static async new(localization = null) {
         return new this(
             localization
         );

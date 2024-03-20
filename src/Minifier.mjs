@@ -3,9 +3,9 @@ import { lstat, readdir, readFile, writeFile } from "node:fs/promises";
 
 export class Minifier {
     /**
-     * @returns {Minifier}
+     * @returns {Promise<Minifier>}
      */
-    static new() {
+    static async new() {
         return new this();
     }
 

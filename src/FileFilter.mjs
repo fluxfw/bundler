@@ -3,9 +3,9 @@ import { lstat, readdir, readFile } from "node:fs/promises";
 
 export class FileFilter {
     /**
-     * @returns {FileFilter}
+     * @returns {Promise<FileFilter>}
      */
-    static new() {
+    static async new() {
         return new this();
     }
 

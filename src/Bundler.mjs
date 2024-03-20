@@ -6,9 +6,9 @@ import { dirname, extname, join } from "node:path";
 
 export class Bundler {
     /**
-     * @returns {Bundler}
+     * @returns {Promise<Bundler>}
      */
-    static new() {
+    static async new() {
         return new this();
     }
 

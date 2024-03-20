@@ -10,11 +10,11 @@ export class GenerateServiceWorker {
     #file_filter;
 
     /**
-     * @returns {GenerateServiceWorker}
+     * @returns {Promise<GenerateServiceWorker>}
      */
-    static new() {
+    static async new() {
         return new this(
-            FileFilter.new()
+            await FileFilter.new()
         );
     }
 
