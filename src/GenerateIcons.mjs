@@ -27,7 +27,7 @@ export class GenerateIcons {
 
         for (const icon of manifest.icons ?? []) {
             if ((icon.src ?? "") === "") {
-                throw new Error("Invalid icon");
+                throw new Error("Invalid icon!");
             }
 
             const icon_file = join(dirname(manifest_json_file), icon.src);
@@ -39,7 +39,7 @@ export class GenerateIcons {
             ) : get_icon_template_file;
 
             if ((icon.sizes ?? "") === "" || (icon.sizes !== "any" && !/^\d+x\d+$/.test(icon.sizes)) || (icon.type ?? "") === "") {
-                throw new Error("Invalid icon");
+                throw new Error("Invalid icon!");
             }
 
             if (icon.sizes === "any" && icon.type === "image/svg+xml" && extname(icon_template_file).substring(1).toLowerCase() === "svg") {

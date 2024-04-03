@@ -37,7 +37,7 @@ export class GenerateIndexHtmls {
     async generateIndexHtmls(index_template_html_file, index_html_file, manifest_json_file, localization_module = null) {
         if (localization_module !== null) {
             if (this.#localization === null) {
-                throw new Error("Missing Localization");
+                throw new Error("Missing Localization!");
             }
         }
 
@@ -47,19 +47,19 @@ export class GenerateIndexHtmls {
         const manifest_href_placeholder = " href=\"";
         const manifest_placeholder_pos = index_html.indexOf(manifest_placeholder);
         if (manifest_placeholder_pos === -1) {
-            throw new Error("Missing manifest");
+            throw new Error("Missing manifest!");
         }
         const manifest_href_pos = index_html.substring(manifest_placeholder_pos).indexOf(" href=\"");
         if (manifest_href_pos === -1) {
-            throw new Error("Missing manifest");
+            throw new Error("Missing manifest!");
         }
         const manifest_href_end_pos = index_html.substring(manifest_placeholder_pos + manifest_href_pos + manifest_href_placeholder.length).indexOf("\"");
         if (manifest_href_end_pos === -1) {
-            throw new Error("Missing manifest");
+            throw new Error("Missing manifest!");
         }
         const web_manifest_json_file = index_html.substring(manifest_placeholder_pos + manifest_href_pos + manifest_href_placeholder.length, manifest_placeholder_pos + manifest_href_pos + manifest_href_placeholder.length + manifest_href_end_pos);
         if (web_manifest_json_file === "") {
-            throw new Error("Missing manifest");
+            throw new Error("Missing manifest!");
         }
         index_html = `${index_html.substring(0, manifest_placeholder_pos)}${index_html.substring(manifest_placeholder_pos + manifest_placeholder.length, manifest_placeholder_pos + manifest_href_pos + manifest_href_placeholder.length)}${manifest_placeholder}${index_html.substring(manifest_placeholder_pos + manifest_href_pos + manifest_href_placeholder.length + manifest_href_end_pos)}`;
 

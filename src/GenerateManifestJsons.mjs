@@ -35,7 +35,7 @@ export class GenerateManifestJsons {
     async generateManifestJsons(manifest_template, manifest_json_file, localization_module = null) {
         if (localization_module !== null) {
             if (this.#localization === null) {
-                throw new Error("Missing Localization");
+                throw new Error("Missing Localization!");
             }
         }
 
