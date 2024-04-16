@@ -31,16 +31,9 @@ export class GenerateIndexHtmls {
      * @param {string} index_template_html_file
      * @param {string} index_html_file
      * @param {string} manifest_json_file
-     * @param {string | null} localization_module
      * @returns {Promise<void>}
      */
-    async generateIndexHtmls(index_template_html_file, index_html_file, manifest_json_file, localization_module = null) {
-        if (localization_module !== null) {
-            if (this.#localization === null) {
-                throw new Error("Missing Localization!");
-            }
-        }
-
+    async generateIndexHtmls(index_template_html_file, index_html_file, manifest_json_file) {
         let index_html = await readFile(index_template_html_file, "utf8");
 
         const manifest_placeholder = "%MANIFEST%";
@@ -68,8 +61,7 @@ export class GenerateIndexHtmls {
         const web_manifest_json_file_dot_pos = web_manifest_json_file.lastIndexOf(".");
 
         for (const language of [
-            ...(localization_module !== null ? Object.keys(await this.#localization.getLanguages(
-                localization_module,
+            ...(this.#localization !== null ? Object.keys(await this.#localization.getLanguages(
                 true
             )) : null) ?? [],
             ""

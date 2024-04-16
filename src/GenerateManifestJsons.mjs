@@ -43,7 +43,6 @@ export class GenerateManifestJsons {
 
         for (const language of [
             ...(localization_module !== null ? Object.keys(await this.#localization.getLanguages(
-                localization_module,
                 true
             )) : null) ?? [],
             ""
@@ -54,31 +53,30 @@ export class GenerateManifestJsons {
 
             const localized_manifest = structuredClone(manifest_template);
 
-            const localized_manifest_language = language !== "" ? language : manifest_template.lang ?? "";
+            localized_manifest.lang = language !== "" ? language : manifest_template.lang ?? "";
 
-            for (const key of [
-                "description",
-                "name",
-                "short_name"
-            ]) {
-                if (localization_module !== null && localized_manifest_language !== "" && (localized_manifest[key] ?? "") !== "") {
+            if (localization_module !== null && localized_manifest.lang !== "") {
+                for (const key of [
+                    "description",
+                    "name",
+                    "short_name"
+                ]) {
+                    if ((localized_manifest[key] ?? "") === "") {
+                        continue;
+                    }
+
                     localized_manifest[key] = await this.#localization.translate(
                         localization_module,
                         localized_manifest[key],
                         null,
-                        localized_manifest_language
+                        localized_manifest.lang
                     );
                 }
-            }
 
-            if (localization_module !== null && localized_manifest_language !== "") {
                 localized_manifest.dir = (await this.#localization.getLanguage(
-                    localization_module,
-                    localized_manifest_language
+                    localized_manifest.lang
                 )).direction;
             }
-
-            localized_manifest.lang = localized_manifest_language;
 
             await writeFile(localized_manifest_json_file, `${JSON.stringify(localized_manifest, null, 4)}\n`);
         }
