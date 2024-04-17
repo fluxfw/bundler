@@ -42,7 +42,7 @@ export class GenerateIcons {
                 throw new Error("Invalid icon!");
             }
 
-            await mkdir(dirname(dirname(icon_file)), {
+            await mkdir(dirname(icon_file), {
                 recursive: true
             });
 
