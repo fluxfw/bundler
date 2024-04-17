@@ -53,9 +53,9 @@ export class Bundler {
         }
 
         let mode = null;
-        if (existsSync(output_file)) {
+        if (!existsSync(output_file)) {
             mode = (await stat(result[3])).mode;
-        } else {
+
             await mkdir(dirname(output_file), {
                 recursive: true
             });
@@ -82,7 +82,7 @@ export class Bundler {
      * @param {{[key: string]: number | string}} module_ids
      * @param {string[] | {[key: string]: string}} modules
      * @param {string | null} with_type
-     * @returns {Promise<[number | string, string | null, string[] | string] | null>}
+     * @returns {Promise<[number | string, string | null, string[], string] | null>}
      */
     async #bundle(parent_path, path, exclude_modules, minify_css, minify_xml, module_ids, modules, with_type = null) {
         if (isBuiltin(path) || this.#isExcludedModule(
