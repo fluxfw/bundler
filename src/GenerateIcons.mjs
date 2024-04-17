@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { copyFile, readFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile } from "node:fs/promises";
 import { dirname, extname, join } from "node:path";
 
 export class GenerateIcons {
@@ -41,6 +41,10 @@ export class GenerateIcons {
             if ((icon.sizes ?? "") === "" || (icon.sizes !== "any" && !/^\d+x\d+$/.test(icon.sizes)) || (icon.type ?? "") === "") {
                 throw new Error("Invalid icon!");
             }
+
+            await mkdir(dirname(dirname(icon_file)), {
+                recursive: true
+            });
 
             if (icon.sizes === "any" && icon.type === "image/svg+xml" && extname(icon_template_file).substring(1).toLowerCase() === "svg") {
                 await copyFile(icon_template_file, icon_file);

@@ -6,6 +6,13 @@ Changes:
 
 \-
 
+## v2024-04-17-1
+
+Changes:
+
+- Create folders
+- Add missing `await` on `cache.addAll` on `service-worker.mjs` template
+
 ## v2024-04-16-1
 
 Changes:

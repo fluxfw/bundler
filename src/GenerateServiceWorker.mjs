@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { FileFilter } from "./FileFilter.mjs";
-import { join } from "node:path";
-import { readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 
 export class GenerateServiceWorker {
     /**
@@ -40,6 +40,10 @@ export class GenerateServiceWorker {
         console.log(`Generate ${service_worker_mjs_file}`);
 
         if (!existsSync(service_worker_mjs_file)) {
+            await mkdir(dirname(service_worker_mjs_file), {
+                recursive: true
+            });
+
             await writeFile(service_worker_mjs_file, Buffer.alloc(0));
         }
 

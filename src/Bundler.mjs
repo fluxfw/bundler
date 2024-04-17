@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { chmod, readFile, stat, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createRequire, isBuiltin } from "node:module";
 import { dirname, extname, join } from "node:path";
 
@@ -52,7 +52,14 @@ export class Bundler {
             throw Error(`Invalid input path ${input_path}`);
         }
 
-        const mode = !existsSync(output_file) ? (await stat(result[3])).mode : null;
+        let mode = null;
+        if (existsSync(output_file)) {
+            mode = (await stat(result[3])).mode;
+        } else {
+            await mkdir(dirname(output_file), {
+                recursive: true
+            });
+        }
 
         const code = await readFile(join(dirname(fileURLToPath(import.meta.url)), "Template", "bundle.mjs"), "utf8");
 

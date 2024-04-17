@@ -1,5 +1,5 @@
 import { dirname, join } from "node:path";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 
 /** @typedef {import("./Localization/Localization.mjs").Localization} Localization */
 
@@ -132,6 +132,10 @@ export class GenerateIndexHtmls {
                     localized_index_html = localized_index_html.replaceAll(` ${key}="${placeholder_key}"`, "").split("\n").filter(line => !line.includes(placeholder_key)).join("\n");
                 }
             }
+
+            await mkdir(dirname(localized_index_html_file), {
+                recursive: true
+            });
 
             await writeFile(localized_index_html_file, localized_index_html);
         }

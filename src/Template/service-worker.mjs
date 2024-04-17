@@ -29,7 +29,7 @@ async function getApplicationCache() {
  * @returns {Promise<void>}
  */
 async function cacheApplicationFiles() {
-    (await getApplicationCache()).addAll(APPLICATION_CACHE_FILES.map(request => `${service_worker_path}/${request}`));
+    await (await getApplicationCache()).addAll(APPLICATION_CACHE_FILES.map(request => `${service_worker_path}/${request}`));
 }
 
 /**

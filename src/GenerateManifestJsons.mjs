@@ -1,4 +1,5 @@
-import { writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
+import { mkdir, writeFile } from "node:fs/promises";
 
 /** @typedef {import("./Localization/Localization.mjs").Localization} Localization */
 
@@ -77,6 +78,10 @@ export class GenerateManifestJsons {
                     localized_manifest.lang
                 )).direction;
             }
+
+            await mkdir(dirname(localized_manifest_json_file), {
+                recursive: true
+            });
 
             await writeFile(localized_manifest_json_file, `${JSON.stringify(localized_manifest, null, 4)}\n`);
         }
