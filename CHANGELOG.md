@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-04-18-2
+
+Changes:
+
+- Remove `Localization.mjs`
+
 ## v2024-04-18-1
 
 Changes:
