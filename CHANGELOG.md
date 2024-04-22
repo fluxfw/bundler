@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-04-22-2
+
+Changes:
+
+- Bundler: Fix browser
+
 ## v2024-04-22-1
 
 Changes:
