@@ -26,10 +26,9 @@ export class Bundler {
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {boolean | null} dev_mode
-     * @param {boolean | null} no_top_level_await
      * @returns {Promise<void>}
      */
-    async bundle(input_path, output_file, exclude_modules = null, minify_css = null, minify_xml = null, dev_mode = null, no_top_level_await = null) {
+    async bundle(input_path, output_file, exclude_modules = null, minify_css = null, minify_xml = null, dev_mode = null) {
         console.log(`Bundle ${output_file}`);
 
         const _dev_mode = dev_mode ?? false;
@@ -90,7 +89,7 @@ export class Bundler {
         ]) => code.replaceAll(`"%${placeholder_prefix}_MODULES%"`, () => Array.isArray(modules) ? `[${modules.length > 0 ? `\n${modules.join(",\n")}\n    ` : ""}]` : `{${Object.keys(modules).length > 0 ? `\n${Object.entries(modules).map(([
             _module_id,
             module
-        ]) => `        ${JSON.stringify(_module_id)}: ${module}`).join(",\n")}\n    ` : ""}}`), no_top_level_await ?? false ? template.replace(/^await /, "") : exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? `export default (${template.replace(/;\n$/, "")}).default;\n` : exports.includes("default") ? `const exports = ${template}\nexport default exports.default;\nexport const { ${exports.filter(key => key !== "default").join(", ")} } = exports;\n` : `export const { ${exports.join(", ")} } = ${template}` : template).replaceAll("\"%INIT_LOADED_MODULES%\"", Array.isArray(es_modules) ? "[]" : "{}").replaceAll("\"%ROOT_MODULE_ID%\"", JSON.stringify(module_id)).replaceAll("\"%ROOT_MODULE_IS_COMMONJS%\"", is_commonjs)}`);
+        ]) => `        ${JSON.stringify(_module_id)}: ${module}`).join(",\n")}\n    ` : ""}}`), exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? `export default (${template.replace(/;\n$/, "")}).default;\n` : exports.includes("default") ? `const exports = ${template}\nexport default exports.default;\nexport const { ${exports.filter(key => key !== "default").join(", ")} } = exports;\n` : `export const { ${exports.join(", ")} } = ${template}` : template).replaceAll("\"%INIT_LOADED_MODULES%\"", Array.isArray(es_modules) ? "[]" : "{}").replaceAll("\"%ROOT_MODULE_ID%\"", JSON.stringify(module_id)).replaceAll("\"%ROOT_MODULE_IS_COMMONJS%\"", is_commonjs)}`);
 
         if (mode !== null) {
             await chmod(output_file, mode);

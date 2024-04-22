@@ -8,15 +8,7 @@ await (
      * @returns {Promise<{[key: string]: *}}
      */
     async (es_modules, commonjs_modules, init_loaded_modules, root_module_id, root_module_is_commonjs) => {
-        let __filename, __dirname, require;
-        if (typeof process !== "undefined") {
-            __filename = (await import("node:url")).fileURLToPath(import.meta.url);
-            __dirname = (await import("node:path")).dirname(__filename);
-            require = (await import("node:module")).createRequire(__filename);
-        } else {
-            __filename = import.meta.url;
-            __dirname = __filename.substring(0, __filename.lastIndexOf("/"));
-        }
+        const require = typeof process !== "undefined" ? (await import("node:module")).createRequire(import.meta.url) : null;
 
         const loaded_es_modules = structuredClone(init_loaded_modules);
         const loaded_commonjs_modules = structuredClone(init_loaded_modules);
@@ -47,6 +39,15 @@ await (
                     const module = {
                         exports: {}
                     };
+
+                    let __filename, __dirname;
+                    if (require !== null) {
+                        __filename = require("node:url").fileURLToPath(import.meta.url);
+                        __dirname = require("node:path").dirname(__filename);
+                    } else {
+                        __filename = new URL(import.meta.url).pathname;
+                        __dirname = __filename.substring(0, __filename.lastIndexOf("/"));
+                    }
 
                     commonjs_modules[module_id](
                         load_es_module,

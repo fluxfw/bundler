@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-04-22-3
+
+Changes:
+
+- Bundler: Remove `no_top_level_await`
+
 ## v2024-04-22-2
 
 Changes:
