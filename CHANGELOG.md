@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-04-22-4
+
+Changes:
+
+- Bundler: Improve wrap CommonJs to ESM
+
 ## v2024-04-22-3
 
 Changes:

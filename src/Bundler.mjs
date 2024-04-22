@@ -424,7 +424,7 @@ export class Bundler {
                 is_commonjs
             ] = result;
 
-            _code = _code.replaceAll(_import, `${start}${is_commonjs ? "Promise.resolve(load_commonjs_module" : "load_es_module"}(${JSON.stringify(module_id)})${is_commonjs ? ")" : ""}`);
+            _code = _code.replaceAll(_import, `${start}${is_commonjs ? "load_commonjs_module" : "load_es_module"}(${JSON.stringify(module_id)})`);
         }
 
         return _code;

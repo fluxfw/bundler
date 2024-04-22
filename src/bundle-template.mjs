@@ -70,14 +70,29 @@ await (
 
         /**
          * @param {number | string} module_id
-         * @returns {{[key: string]: *}}
+         * @returns {Promise<{[key: string]: *}>}
          */
-        function load_commonjs_module_for_es(module_id) {
-            loaded_commonjs_modules_for_es[module_id] ??= Object.freeze({
-                default: load_commonjs_module(
+        async function load_commonjs_module_for_es(module_id) {
+            loaded_commonjs_modules_for_es[module_id] ??= (async () => {
+                const exports = load_commonjs_module(
                     module_id
-                )
-            });
+                );
+
+                return Object.freeze(Object.defineProperties({}, Object.fromEntries([
+                    ...Object.keys(exports).filter(key => key !== "default"),
+                    "default"
+                ].map(key => [
+                    key,
+                    {
+                        enumerable: true,
+                        ...key === "default" ? {
+                            value: exports
+                        } : {
+                            get: () => exports[key]
+                        }
+                    }
+                ]))));
+            })();
 
             return loaded_commonjs_modules_for_es[module_id];
         }
