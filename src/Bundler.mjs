@@ -25,7 +25,7 @@ export class Bundler {
      * @param {string[] | null} exclude_modules
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
-     * @param {string | null} dev_mode
+     * @param {boolean | null} dev_mode
      * @param {boolean | null} no_top_level_await
      * @returns {Promise<void>}
      */
@@ -34,9 +34,8 @@ export class Bundler {
 
         const _dev_mode = dev_mode ?? false;
 
-        const module_ids = {};
-
-        const modules = _dev_mode ? {} : [];
+        const es_modules = _dev_mode ? {} : [];
+        const commonjs_modules = structuredClone(es_modules);
 
         const result = await this.#bundle(
             join(process.cwd(), ".mjs"),
@@ -44,29 +43,54 @@ export class Bundler {
             exclude_modules ?? [],
             !_dev_mode ? minify_css : null,
             !_dev_mode ? minify_xml : null,
-            module_ids,
-            modules
+            {},
+            {},
+            {},
+            es_modules,
+            commonjs_modules
         );
 
         if (result === null) {
             throw Error(`Invalid input path ${input_path}`);
         }
 
+        const [
+            module_id,
+            hash_bang,
+            exports,
+            absolute_path,
+            is_commonjs
+        ] = result;
+
         let mode = null;
         if (!existsSync(output_file)) {
-            mode = (await stat(result[3])).mode;
+            ({
+                mode
+            } = await stat(absolute_path));
 
             await mkdir(dirname(output_file), {
                 recursive: true
             });
         }
 
-        const code = await readFile(join(dirname(fileURLToPath(import.meta.url)), "Template", "bundle.mjs"), "utf8");
+        const template = await readFile(join(dirname(fileURLToPath(import.meta.url)), "bundle-template.mjs"), "utf8");
 
-        await writeFile(output_file, `${result[1] !== null ? `${result[1]}\n` : ""}${(no_top_level_await ?? false ? code.replace(/^await /, "") : result[2].length > 0 ? result[2].length === 1 && result[2][0] === "default" ? `${"e"}xport default (${code.replace(/;\n$/, "")}).default;\n` : result[2].includes("default") ? `const __exports__ = ${code}\n${"e"}xport default __exports__.default;\n${"e"}xport const { ${result[2].filter(key => key !== "default").join(", ")} } = __exports__;\n` : `${"e"}xport const { ${result[2].join(", ")} } = ${code}` : code).replaceAll("/*%ROOT_MODULE_ID%*/", JSON.stringify(result[0])).replaceAll("{ /*%INIT_LOADED_MODULES%*/ }", Array.isArray(modules) ? "[]" : "{}").replaceAll("{ /*%MODULES%*/ }", () => Array.isArray(modules) ? `[\n${modules.join(",\n")}\n    ]` : `{\n${Object.entries(modules).map(([
+        await writeFile(output_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${[
+            [
+                "ES",
+                es_modules
+            ],
+            [
+                "COMMONJS",
+                commonjs_modules
+            ]
+        ].reduce((code, [
+            placeholder_prefix,
+            modules
+        ]) => code.replaceAll(`"%${placeholder_prefix}_MODULES%"`, () => Array.isArray(modules) ? `[${modules.length > 0 ? `\n${modules.join(",\n")}\n    ` : ""}]` : `{${Object.keys(modules).length > 0 ? `\n${Object.entries(modules).map(([
             _module_id,
             module
-        ]) => `        ${JSON.stringify(_module_id)}: ${module}`).join(",\n")}\n    }`)}`);
+        ]) => `        ${JSON.stringify(_module_id)}: ${module}`).join(",\n")}\n    ` : ""}}`), no_top_level_await ?? false ? template.replace(/^await /, "") : exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? `export default (${template.replace(/;\n$/, "")}).default;\n` : exports.includes("default") ? `const exports = ${template}\nexport default exports.default;\nexport const { ${exports.filter(key => key !== "default").join(", ")} } = exports;\n` : `export const { ${exports.join(", ")} } = ${template}` : template).replaceAll("\"%INIT_LOADED_MODULES%\"", Array.isArray(es_modules) ? "[]" : "{}").replaceAll("\"%ROOT_MODULE_ID%\"", JSON.stringify(module_id)).replaceAll("\"%ROOT_MODULE_IS_COMMONJS%\"", is_commonjs)}`);
 
         if (mode !== null) {
             await chmod(output_file, mode);
@@ -79,12 +103,15 @@ export class Bundler {
      * @param {string[]} exclude_modules
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
-     * @param {{[key: string]: number | string}} module_ids
-     * @param {string[] | {[key: string]: string}} modules
+     * @param {{[key: string]: boolean}} modules_are_commonjs
+     * @param {{[key: string]: number | string}} es_module_ids
+     * @param {{[key: string]: number | string}} commonjs_module_ids
+     * @param {string[] | {[key: string]: string}} es_modules
+     * @param {string[] | {[key: string]: string}} commonjs_modules
      * @param {string | null} with_type
-     * @returns {Promise<[number | string, string | null, string[], string] | null>}
+     * @returns {Promise<[number | string, string | null, string[], string, boolean] | null>}
      */
-    async #bundle(parent_path, path, exclude_modules, minify_css, minify_xml, module_ids, modules, with_type = null) {
+    async #bundle(parent_path, path, exclude_modules, minify_css, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, with_type = null) {
         if (isBuiltin(path) || this.#isExcludedModule(
             exclude_modules,
             path
@@ -97,13 +124,33 @@ export class Bundler {
         if (this.#isExcludedModule(
             exclude_modules,
             absolute_path
-        ) || (with_type === null && ![
-            "cjs",
-            "js",
-            "mjs"
-        ].includes(extname(absolute_path).substring(1).toLowerCase()))) {
+        )) {
             return null;
         }
+
+        let read_file;
+        modules_are_commonjs[absolute_path] ??= await (async () => {
+            if (with_type === "cjs") {
+                return true;
+            }
+
+            read_file = await this.#readFile(
+                absolute_path
+            );
+
+            const [
+                ,
+                ,
+                ,
+                _is_commonjs
+            ] = read_file;
+
+            return _is_commonjs;
+        })();
+        const is_commonjs = modules_are_commonjs[absolute_path];
+
+        const module_ids = is_commonjs ? commonjs_module_ids : es_module_ids;
+        const modules = is_commonjs ? commonjs_modules : es_modules;
 
         module_ids[absolute_path] ??= Array.isArray(modules) ? modules.length : absolute_path;
         const module_id = module_ids[absolute_path];
@@ -114,14 +161,13 @@ export class Bundler {
         if ((modules[module_id] ?? null) === null) {
             modules[module_id] = "";
 
-            let has_load_modules = false;
             let code;
 
             switch (with_type) {
                 case "css":
                     [
                         code
-                    ] = await this.#readFile(
+                    ] = read_file ?? await this.#readFile(
                         absolute_path
                     );
 
@@ -143,18 +189,16 @@ export class Bundler {
                         );
 
                         let data;
-                        if (ext === "svg") {
+                        if (ext === "svg" && minify_xml !== null) {
                             [
                                 data
                             ] = await this.#readFile(
                                 _absolute_path
                             );
 
-                            if (minify_xml !== null) {
-                                data = await minify_xml(
-                                    data
-                                );
-                            }
+                            data = await minify_xml(
+                                data
+                            );
 
                             data = btoa(data);
                         } else {
@@ -170,7 +214,7 @@ export class Bundler {
                         );
                     }
 
-                    code = `const __style_sheet__ = new CSSStyleSheet();\n__style_sheet__.replaceSync(${JSON.stringify(code)});\nreturn { default: __style_sheet__ };`;
+                    code = `const style_sheet = new CSSStyleSheet();\nstyle_sheet.replaceSync(${JSON.stringify(code)});\nreturn Object.freeze({ default: style_sheet });`;
 
                     exports = [
                         "default"
@@ -178,9 +222,13 @@ export class Bundler {
                     break;
 
                 case "json":
-                    code = `return { default: ${(await this.#readFile(
+                    [
+                        code
+                    ] = read_file ?? await this.#readFile(
                         absolute_path
-                    ))[0]} };`;
+                    );
+
+                    code = `return Object.freeze({ default: ${code} });`;
 
                     exports = [
                         "default"
@@ -188,72 +236,84 @@ export class Bundler {
                     break;
 
                 default: {
-                    [
-                        code,
-                        hash_bang
-                    ] = await this.#readFile(
+                    read_file ??= await this.#readFile(
                         absolute_path
                     );
+                    [
+                        code,
+                        ,
+                        hash_bang
+                    ] = read_file;
+                    const [
+                        ,
+                        ext
+                    ] = read_file;
 
-                    let ext = extname(absolute_path).substring(1).toLowerCase();
+                    if (is_commonjs && ext === "json") {
+                        code = `module.exports = ${code};`;
+                    } else {
+                        code = this.#replaceMisleadingKeywordsInComments(
+                            code
+                        );
 
-                    if (ext === "js") {
-                        ext = /(^|\n)\s*import\s*[^(]/.test(code) || /(^|\n)\s*export\s/.test(code) || /import\s*\.\s*meta/.test(code) ? "mjs" : "cjs";
-                    }
+                        if (is_commonjs) {
+                            code = await this.#replaceRequiresWithLoadModules(
+                                absolute_path,
+                                exclude_modules,
+                                minify_css,
+                                minify_xml,
+                                modules_are_commonjs,
+                                es_module_ids,
+                                commonjs_module_ids,
+                                es_modules,
+                                commonjs_modules,
+                                code
+                            );
 
-                    code = this.#replaceMisleadingKeywordsInComments(
-                        code
-                    );
+                            exports = [
+                                "default"
+                            ];
+                        } else {
+                            code = this.#replaceStaticImportsWithDynamicImports(
+                                code
+                            );
 
-                    if (ext === "cjs") {
-                        const __dirname = code.includes("__dirname");
-                        const __filename = code.includes("__filename");
+                            [
+                                code,
+                                exports
+                            ] = this.#replaceExportsWithReturns(
+                                code
+                            );
+                        }
 
-                        code = `${__dirname ? `let { dirname } = await ${"i"}mport("node:path");\n` : ""}${__dirname || __filename ? `let { fileURLToPath } = await ${"i"}mport("node:url");\n` : ""}let module = { exports: {} };\nlet exports = module.exports;${__dirname || __filename ? "\nlet __filename = fileURLToPath(import.meta.url);" : ""}${__dirname ? "\nlet __dirname = dirname(__filename);" : ""}\n${code}\nmodule.exports.default = module.exports;\nreturn module.exports;`;
-
-                        code = this.#replaceRequiresWithDynamicImports(
+                        code = await this.#replaceDynamicImportsWithLoadModules(
+                            absolute_path,
+                            exclude_modules,
+                            minify_css,
+                            minify_xml,
+                            modules_are_commonjs,
+                            es_module_ids,
+                            commonjs_module_ids,
+                            es_modules,
+                            commonjs_modules,
                             code
                         );
                     }
-
-                    code = this.#replaceStaticImportsWithDynamicImports(
-                        code
-                    );
-
-                    [
-                        code,
-                        exports
-                    ] = this.#replaceExportsWithReturns(
-                        code
-                    );
-
-                    [
-                        has_load_modules,
-                        code
-                    ] = await this.#replaceDynamicImportsWithLoadModules(
-                        absolute_path,
-                        exclude_modules,
-                        minify_css,
-                        minify_xml,
-                        module_ids,
-                        modules,
-                        has_load_modules,
-                        code
-                    );
                 }
                     break;
             }
 
             code = code.trim();
 
-            modules[module_id] = `${Array.isArray(modules) ? `        // ${module_id}\n        ` : ""}async ${has_load_modules ? "__load_module__" : "()"} => ${!code.startsWith("return ") ? `{\n${code}\n        }` : `${code.includes("{") ? "(" : ""}${code.replaceAll(/(^return |;$)/g, "")}${code.includes("{") ? ")" : ""}`}`;
+            modules[module_id] = `${Array.isArray(modules) ? `        // ${module_id}\n        ` : ""}${!is_commonjs ? "async " : ""}(load_es_module, load_commonjs_module${is_commonjs ? ", module, exports, require, __filename, __dirname" : ""}) => ${!code.startsWith("return ") ? `{\n${code}\n        }` : `${code.includes("{") ? "(" : ""}${code.replaceAll(/(^return |;$)/g, "")}${code.includes("{") ? ")" : ""}`}`;
         }
 
         return [
             module_id,
             hash_bang,
             exports,
-            absolute_path
+            absolute_path,
+            is_commonjs
         ];
     }
 
@@ -288,13 +348,14 @@ export class Bundler {
 
     /**
      * @param {string} path
-     * @returns {Promise<[string, string | null]>}
+     * @returns {Promise<[string, string, string | null, boolean]>}
      */
     async #readFile(path) {
         let code = (await readFile(path, "utf8")).replaceAll("\r\n", "\n").replaceAll("\r", "\n");
 
-        let hash_bang = null;
+        const ext = extname(path).substring(1).toLowerCase();
 
+        let hash_bang = null;
         if (code.startsWith("#!")) {
             code = code.split("\n");
             hash_bang = code.shift();
@@ -303,7 +364,9 @@ export class Bundler {
 
         return [
             code.trim(),
-            hash_bang
+            ext,
+            hash_bang,
+            ext === "cjs" ? true : ext === "js" ? !(/(^|\n)\s*import\s*[^(]/.test(code) || /(^|\n)\s*export\s/.test(code) || /import\s*\.\s*meta/.test(code)) : false
         ];
     }
 
@@ -312,14 +375,15 @@ export class Bundler {
      * @param {string[]} exclude_modules
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
-     * @param {{[key: string]: number}} module_ids
-     * @param {string[] | {[key: string]: string}} modules
-     * @param {boolean} has_load_modules
+     * @param {{[key: string]: boolean}} modules_are_commonjs
+     * @param {{[key: string]: number | string}} es_module_ids
+     * @param {{[key: string]: number | string}} commonjs_module_ids
+     * @param {string[] | {[key: string]: string}} es_modules
+     * @param {string[] | {[key: string]: string}} commonjs_modules
      * @param {string} code
-     * @returns {Promise<[boolean, string]>}
+     * @returns {Promise<string>}
      */
-    async #replaceDynamicImportsWithLoadModules(parent_path, exclude_modules, minify_css, minify_xml, module_ids, modules, has_load_modules, code) {
-        let _has_load_modules = has_load_modules;
+    async #replaceDynamicImportsWithLoadModules(parent_path, exclude_modules, minify_css, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, code) {
         let _code = code;
 
         for (const [
@@ -341,8 +405,11 @@ export class Bundler {
                 exclude_modules,
                 minify_css,
                 minify_xml,
-                module_ids,
-                modules,
+                modules_are_commonjs,
+                es_module_ids,
+                commonjs_module_ids,
+                es_modules,
+                commonjs_modules,
                 with_type
             );
 
@@ -350,15 +417,18 @@ export class Bundler {
                 continue;
             }
 
-            _has_load_modules = true;
+            const [
+                module_id,
+                ,
+                ,
+                ,
+                is_commonjs
+            ] = result;
 
-            _code = _code.replaceAll(_import, `${start}__load_module__(${JSON.stringify(result[0])})`);
+            _code = _code.replaceAll(_import, `${start}${is_commonjs ? "Promise.resolve(load_commonjs_module" : "load_es_module"}(${JSON.stringify(module_id)})${is_commonjs ? ")" : ""}`);
         }
 
-        return [
-            _has_load_modules,
-            _code
-        ];
+        return _code;
     }
 
     /**
@@ -426,10 +496,10 @@ export class Bundler {
                     ] of _exports.entries()) {
                         exports.push([
                             key,
-                            i === 0 ? `...await (async () => {\n    const __imports__ = await import(${from});\n    return { ${_exports.map(([
+                            i === 0 ? `...await (async () => {\n    const imports = await import(${from});\n    return { ${_exports.map(([
                                 key_1,
                                 _key_2
-                            ]) => `${key_1}: __imports__.${_key_2}`).join(", ")} };\n})()` : ""
+                            ]) => `${key_1}: imports.${_key_2}`).join(", ")} };\n})()` : ""
                         ]);
                     }
                 }
@@ -482,15 +552,60 @@ export class Bundler {
      * @returns {string}
      */
     #replaceMisleadingKeywordsInComments(code) {
-        return code.replaceAll(/(\/\*[\s\S]*?\*\/|\/\/[^\n]*(\n|$))/g, comment => comment.replaceAll(/__dirname|__filename|export|import|require/g, keyword => `__${keyword}__`));
+        return code.replaceAll(/(\/\*[\s\S]*?\*\/|\/\/[^\n]*(\n|$))/g, comment => comment.replaceAll(/export|import|require/g, keyword => `__${keyword}__`));
     }
 
     /**
+     * @param {string} parent_path
+     * @param {string[]} exclude_modules
+     * @param {((css: string) => Promise<string>) | null} minify_css
+     * @param {((css: string) => Promise<string>) | null} minify_xml
+     * @param {{[key: string]: boolean}} modules_are_commonjs
+     * @param {{[key: string]: number | string}} es_module_ids
+     * @param {{[key: string]: number | string}} commonjs_module_ids
+     * @param {string[] | {[key: string]: string}} es_modules
+     * @param {string[] | {[key: string]: string}} commonjs_modules
      * @param {string} code
-     * @returns {string}
+     * @returns {Promise<string>}
      */
-    #replaceRequiresWithDynamicImports(code) {
-        return code.replaceAll(/(^|[\s(,=])require\s*\(\s*(["'`]([^"'`\n]+)["'`])\s*\)/g, (_, start, path, _path) => `${start}(await import(${path}${extname(_path).substring(1).toLowerCase() === "json" ? ", { with: { type: \"json\" } })).default" : "))"}`);
+    async #replaceRequiresWithLoadModules(parent_path, exclude_modules, minify_css, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, code) {
+        let _code = code;
+
+        for (const [
+            _require,
+            start,
+            path
+        ] of _code.matchAll(/(^|[\s(,=])require\s*\(\s*["'`]([^"'`\n]+)["'`]\s*\)/g)) {
+            if (!_code.includes(_require)) {
+                continue;
+            }
+
+            const result = await this.#bundle(
+                parent_path,
+                path,
+                exclude_modules,
+                minify_css,
+                minify_xml,
+                modules_are_commonjs,
+                es_module_ids,
+                commonjs_module_ids,
+                es_modules,
+                commonjs_modules,
+                "cjs"
+            );
+
+            if (result === null) {
+                continue;
+            }
+
+            const [
+                module_id
+            ] = result;
+
+            _code = _code.replaceAll(_require, `${start}load_commonjs_module(${JSON.stringify(module_id)})`);
+        }
+
+        return _code;
     }
 
     /**

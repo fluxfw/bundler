@@ -6,6 +6,13 @@ Changes:
 
 \-
 
+## v2024-04-22-1
+
+Changes:
+
+- Bundler: Improve CommonJs support by seperating it with ESM for sync load it
+- Remove serice worker
+
 ## v2024-04-18-2
 
 Changes:
