@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-04-26-1
+
+Changes:
+
+- Rename `dev_mode` to `dev`
+
 ## v2024-04-22-4
 
 Changes:

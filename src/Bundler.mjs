@@ -25,23 +25,23 @@ export class Bundler {
      * @param {string[] | null} exclude_modules
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
-     * @param {boolean | null} dev_mode
+     * @param {boolean | null} dev
      * @returns {Promise<void>}
      */
-    async bundle(input_path, output_file, exclude_modules = null, minify_css = null, minify_xml = null, dev_mode = null) {
+    async bundle(input_path, output_file, exclude_modules = null, minify_css = null, minify_xml = null, dev = null) {
         console.log(`Bundle ${output_file}`);
 
-        const _dev_mode = dev_mode ?? false;
+        const _dev = dev ?? false;
 
-        const es_modules = _dev_mode ? {} : [];
+        const es_modules = _dev ? {} : [];
         const commonjs_modules = structuredClone(es_modules);
 
         const result = await this.#bundle(
             join(process.cwd(), ".mjs"),
             input_path,
             exclude_modules ?? [],
-            !_dev_mode ? minify_css : null,
-            !_dev_mode ? minify_xml : null,
+            !_dev ? minify_css : null,
+            !_dev ? minify_xml : null,
             {},
             {},
             {},
