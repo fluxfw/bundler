@@ -114,7 +114,7 @@ export class Bundler {
         const absolute_path = (resolve !== null ? await resolve(
             path,
             parent_path
-        ) : null) ?? !isBuiltin(path) ? createRequire(parent_path ?? join(process.cwd(), ".mjs")).resolve(path) : false;
+        ) : null) ?? (!isBuiltin(path) ? createRequire(parent_path ?? join(process.cwd(), ".mjs")).resolve(path) : false);
 
         if (absolute_path === false) {
             return null;

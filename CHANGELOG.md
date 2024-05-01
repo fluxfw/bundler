@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-05-01-2
+
+Changes:
+
+- Fix `resolve`
+
 ## v2024-05-01-1
 
 Changes:
