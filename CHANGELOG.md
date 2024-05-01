@@ -6,6 +6,13 @@ Changes:
 
 \-
 
+## v2024-05-01-1
+
+Changes:
+
+- Replace `exclude_modules` with `resolve` function
+- Remove generate icon
+
 ## v2024-04-26-1
 
 Changes:

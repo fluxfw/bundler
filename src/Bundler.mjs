@@ -22,13 +22,13 @@ export class Bundler {
     /**
      * @param {string} input_path
      * @param {string} output_file
-     * @param {string[] | null} exclude_modules
+     * @param {((path: string, parent_path?: string | null) => Promise<string | false | null>) | null} resolve
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {boolean | null} dev
      * @returns {Promise<void>}
      */
-    async bundle(input_path, output_file, exclude_modules = null, minify_css = null, minify_xml = null, dev = null) {
+    async bundle(input_path, output_file, resolve = null, minify_css = null, minify_xml = null, dev = null) {
         console.log(`Bundle ${output_file}`);
 
         const _dev = dev ?? false;
@@ -37,9 +37,9 @@ export class Bundler {
         const commonjs_modules = structuredClone(es_modules);
 
         const result = await this.#bundle(
-            join(process.cwd(), ".mjs"),
+            null,
             input_path,
-            exclude_modules ?? [],
+            resolve,
             !_dev ? minify_css : null,
             !_dev ? minify_xml : null,
             {},
@@ -97,9 +97,9 @@ export class Bundler {
     }
 
     /**
-     * @param {string} parent_path
+     * @param {string | null} parent_path
      * @param {string} path
-     * @param {string[]} exclude_modules
+     * @param {((path: string, parent_path?: string | null) => Promise<string | false | null>) | null} resolve
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: boolean}} modules_are_commonjs
@@ -110,20 +110,13 @@ export class Bundler {
      * @param {string | null} with_type
      * @returns {Promise<[number | string, string | null, string[], string, boolean] | null>}
      */
-    async #bundle(parent_path, path, exclude_modules, minify_css, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, with_type = null) {
-        if (isBuiltin(path) || this.#isExcludedModule(
-            exclude_modules,
-            path
-        )) {
-            return null;
-        }
+    async #bundle(parent_path, path, resolve, minify_css, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, with_type = null) {
+        const absolute_path = (resolve !== null ? await resolve(
+            path,
+            parent_path
+        ) : null) ?? !isBuiltin(path) ? createRequire(parent_path ?? join(process.cwd(), ".mjs")).resolve(path) : false;
 
-        const absolute_path = createRequire(parent_path).resolve(path);
-
-        if (this.#isExcludedModule(
-            exclude_modules,
-            absolute_path
-        )) {
+        if (absolute_path === false) {
             return null;
         }
 
@@ -258,7 +251,7 @@ export class Bundler {
                         if (is_commonjs) {
                             code = await this.#replaceRequiresWithLoadModules(
                                 absolute_path,
-                                exclude_modules,
+                                resolve,
                                 minify_css,
                                 minify_xml,
                                 modules_are_commonjs,
@@ -287,7 +280,7 @@ export class Bundler {
 
                         code = await this.#replaceDynamicImportsWithLoadModules(
                             absolute_path,
-                            exclude_modules,
+                            resolve,
                             minify_css,
                             minify_xml,
                             modules_are_commonjs,
@@ -333,19 +326,6 @@ export class Bundler {
     }
 
     /**
-     * @param {string[]} exclude_modules
-     * @param {string} path
-     * @returns {boolean}
-     */
-    #isExcludedModule(exclude_modules, path) {
-        if (path.startsWith(".")) {
-            return false;
-        }
-
-        return exclude_modules.some(exclude_module => exclude_module === path || path.startsWith(`${exclude_module}/`));
-    }
-
-    /**
      * @param {string} path
      * @returns {Promise<[string, string, string | null, boolean]>}
      */
@@ -371,7 +351,7 @@ export class Bundler {
 
     /**
      * @param {string} parent_path
-     * @param {string[]} exclude_modules
+     * @param {((path: string, parent_path?: string | null) => Promise<string | false | null>) | null} resolve
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: boolean}} modules_are_commonjs
@@ -382,7 +362,7 @@ export class Bundler {
      * @param {string} code
      * @returns {Promise<string>}
      */
-    async #replaceDynamicImportsWithLoadModules(parent_path, exclude_modules, minify_css, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, code) {
+    async #replaceDynamicImportsWithLoadModules(parent_path, resolve, minify_css, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, code) {
         let _code = code;
 
         for (const [
@@ -401,7 +381,7 @@ export class Bundler {
             const result = await this.#bundle(
                 parent_path,
                 path,
-                exclude_modules,
+                resolve,
                 minify_css,
                 minify_xml,
                 modules_are_commonjs,
@@ -556,7 +536,7 @@ export class Bundler {
 
     /**
      * @param {string} parent_path
-     * @param {string[]} exclude_modules
+     * @param {((path: string, parent_path?: string | null) => Promise<string | false | null>) | null} resolve
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: boolean}} modules_are_commonjs
@@ -567,7 +547,7 @@ export class Bundler {
      * @param {string} code
      * @returns {Promise<string>}
      */
-    async #replaceRequiresWithLoadModules(parent_path, exclude_modules, minify_css, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, code) {
+    async #replaceRequiresWithLoadModules(parent_path, resolve, minify_css, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, code) {
         let _code = code;
 
         for (const [
@@ -582,7 +562,7 @@ export class Bundler {
             const result = await this.#bundle(
                 parent_path,
                 path,
-                exclude_modules,
+                resolve,
                 minify_css,
                 minify_xml,
                 modules_are_commonjs,
