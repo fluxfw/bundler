@@ -446,7 +446,7 @@ export class Bundler {
                 ]);
 
                 return `const __${_default}__ = `;
-            }).replaceAll(/export\s*\{([^}]*)\}\s*from\s*(["'`][^"'`\n]+["'`])(\s*;+)?/g, (_, keys, from) => {
+            }).replaceAll(/export\s*\{([^}]*)\}\s*from\s*(["'`][^"'`\n]+["'`])(\s*with\s*(\{[^}]*\}))?(\s*;+)?/g, (_, keys, from, __, _with = null) => {
                 const _exports = [];
 
                 for (const [
@@ -464,7 +464,7 @@ export class Bundler {
                 if (_exports.length === 1) {
                     exports.push([
                         _exports[0][0],
-                        `${_exports[0][0]}: (await import(${from})).${_exports[0][1]}`
+                        `${_exports[0][0]}: (await import(${from}${_with !== null ? `, { with: ${_with} }` : ""})).${_exports[0][1]}`
                     ]);
                 } else {
                     for (const [
@@ -475,7 +475,7 @@ export class Bundler {
                     ] of _exports.entries()) {
                         exports.push([
                             key,
-                            i === 0 ? `...await (async () => {\n    const imports = await import(${from});\n    return { ${_exports.map(([
+                            i === 0 ? `...await (async () => {\n    const imports = await import(${from}${_with !== null ? `, { with: ${_with} }` : ""});\n    return { ${_exports.map(([
                                 key_1,
                                 _key_2
                             ]) => `${key_1}: imports.${_key_2}`).join(", ")} };\n})()` : ""

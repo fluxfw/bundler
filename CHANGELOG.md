@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-05-02-1
+
+Changes:
+
+- Supports `export ... from ... with ...` syntax
+
 ## v2024-05-01-2
 
 Changes:
