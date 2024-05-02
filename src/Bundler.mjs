@@ -86,10 +86,10 @@ export class Bundler {
         ].reduce((code, [
             placeholder_prefix,
             modules
-        ]) => code.replaceAll(`"%${placeholder_prefix}_MODULES%"`, () => Array.isArray(modules) ? `[${modules.length > 0 ? `\n${modules.join(",\n")}\n    ` : ""}]` : `{${Object.keys(modules).length > 0 ? `\n${Object.entries(modules).map(([
+        ]) => code.replaceAll(`"%${placeholder_prefix}_MODULES%"`, () => Array.isArray(modules) ? `[${modules.length > 0 ? `\n${modules.join(",\n")}\n` : ""}]` : `{${Object.keys(modules).length > 0 ? `\n${Object.entries(modules).map(([
             _module_id,
             module
-        ]) => `        ${JSON.stringify(_module_id)}: ${module}`).join(",\n")}\n    ` : ""}}`), exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? `export default (${template.replace(/;\n$/, "")}).default;\n` : exports.includes("default") ? `const exports = ${template}\nexport default exports.default;\nexport const { ${exports.filter(key => key !== "default").join(", ")} } = exports;\n` : `export const { ${exports.join(", ")} } = ${template}` : template).replaceAll("\"%INIT_LOADED_MODULES%\"", Array.isArray(es_modules) ? "[]" : "{}").replaceAll("\"%ROOT_MODULE_ID%\"", JSON.stringify(module_id)).replaceAll("\"%ROOT_MODULE_IS_COMMONJS%\"", is_commonjs)}`);
+        ]) => `${JSON.stringify(_module_id)}: ${module}`).join(",\n")}\n` : ""}}`), exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? `export default (${template.replace(/;\n$/, "")}).default;\n` : exports.includes("default") ? `const exports = ${template}\nexport default exports.default;\nexport const { ${exports.filter(key => key !== "default").join(", ")} } = exports;\n` : `export const { ${exports.join(", ")} } = ${template}` : template).replaceAll("\"%INIT_LOADED_MODULES%\"", Array.isArray(es_modules) ? "[]" : "{}").replaceAll("\"%ROOT_MODULE_ID%\"", JSON.stringify(module_id)).replaceAll("\"%ROOT_MODULE_IS_COMMONJS%\"", is_commonjs)}`);
 
         if (mode !== null) {
             await chmod(output_file, mode);
@@ -297,7 +297,7 @@ export class Bundler {
 
             code = code.trim();
 
-            modules[module_id] = `${Array.isArray(modules) ? `        // ${module_id}\n        ` : ""}${!is_commonjs ? "async " : ""}(load_es_module, load_commonjs_module${is_commonjs ? ", module, exports, require, __filename, __dirname" : ""}) => ${!code.startsWith("return ") ? `{\n${code}\n        }` : `${code.includes("{") ? "(" : ""}${code.replaceAll(/(^return |;$)/g, "")}${code.includes("{") ? ")" : ""}`}`;
+            modules[module_id] = `${Array.isArray(modules) ? `// ${module_id}\n` : ""}${!is_commonjs ? "async " : ""}(load_es_module, load_commonjs_module${is_commonjs ? ", module, exports, require, __filename, __dirname" : ""}) => ${!code.startsWith("return ") ? `{\n${code}\n}` : `${code.includes("{") ? "(" : ""}${code.replaceAll(/(^return |;$)/g, "")}${code.includes("{") ? ")" : ""}`}`;
         }
 
         return [
@@ -475,10 +475,10 @@ export class Bundler {
                     ] of _exports.entries()) {
                         exports.push([
                             key,
-                            i === 0 ? `...await (async () => {\n    const imports = await import(${from}${_with !== null ? `, { with: ${_with} }` : ""});\n    return { ${_exports.map(([
+                            i === 0 ? `...await (async () => { const imports = await import(${from}${_with !== null ? `, { with: ${_with} }` : ""}); return { ${_exports.map(([
                                 key_1,
                                 _key_2
-                            ]) => `${key_1}: imports.${_key_2}`).join(", ")} };\n})()` : ""
+                            ]) => `${key_1}: imports.${_key_2}`).join(", ")} }; })()` : ""
                         ]);
                     }
                 }
@@ -592,6 +592,6 @@ export class Bundler {
      * @returns {string}
      */
     #replaceStaticImportsWithDynamicImports(code) {
-        return code.replaceAll(/(import\s*)(\w+)(\s*,\s*\{([^}]*)\})?(\s*from)/g, (_, _import, default_property, __, properties = null, from) => `${_import}{\n    default: ${default_property}${properties !== null ? `,\n    ${properties.trim()}` : ""}\n}${from}`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`\n]+["'`])\s*with\s*(\{[^}]*\})/g, (_, properties, path, _with) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path}, { with: ${_with} })`).replaceAll(/import\s*((\w+)\s*,\s*)?\*\s+as\s+(\w+)\s+from\s*(["'`][^"'`\n]+["'`])/g, (_, __, default_property = null, properties, path) => `const ${default_property !== null ? `{\n    default: ${default_property},\n    ...${properties}\n}` : `${properties}`} = await import(${path})`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`\n]+["'`])/g, (_, properties, path) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path})`).replaceAll(/(^|\s)import\s*(["'`][^"'`\n]+["'`])/g, (_, start, path) => `${start}await import(${path})`);
+        return code.replaceAll(/(import\s*)(\w+)(\s*,\s*\{([^}]*)\})?(\s*from)/g, (_, _import, default_property, __, properties = null, from) => `${_import}{ default: ${default_property}${properties !== null ? `, ${properties.trim()}` : ""} }${from}`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`\n]+["'`])\s*with\s*(\{[^}]*\})/g, (_, properties, path, _with) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path}, { with: ${_with} })`).replaceAll(/import\s*((\w+)\s*,\s*)?\*\s+as\s+(\w+)\s+from\s*(["'`][^"'`\n]+["'`])/g, (_, __, default_property = null, properties, path) => `const ${default_property !== null ? `{ default: ${default_property}, ...${properties} }` : `${properties}`} = await import(${path})`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`\n]+["'`])/g, (_, properties, path) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path})`).replaceAll(/(^|\s)import\s*(["'`][^"'`\n]+["'`])/g, (_, start, path) => `${start}await import(${path})`);
     }
 }

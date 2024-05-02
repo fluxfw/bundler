@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-05-02-2
+
+Changes:
+
+- Remove indents
+
 ## v2024-05-02-1
 
 Changes:
