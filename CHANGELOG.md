@@ -6,6 +6,13 @@ Changes:
 
 \-
 
+## v2024-05-03-1
+
+Changes:
+
+- Make import commonjs in commonjs work
+- Remove indents
+
 ## v2024-05-02-2
 
 Changes:

@@ -51,6 +51,7 @@ await (
 
                     commonjs_modules[module_id](
                         load_es_module,
+                        load_commonjs_module_for_es,
                         load_commonjs_module,
                         module,
                         module.exports,

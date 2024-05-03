@@ -50,7 +50,7 @@ export class Bundler {
         );
 
         if (result === null) {
-            throw Error(`Invalid input path ${input_path}`);
+            throw Error(`Invalid input path ${input_path}!`);
         }
 
         const [
@@ -86,10 +86,10 @@ export class Bundler {
         ].reduce((code, [
             placeholder_prefix,
             modules
-        ]) => code.replaceAll(`"%${placeholder_prefix}_MODULES%"`, () => Array.isArray(modules) ? `[${modules.length > 0 ? `\n${modules.join(",\n")}\n` : ""}]` : `{${Object.keys(modules).length > 0 ? `\n${Object.entries(modules).map(([
+        ]) => code.replaceAll(`"%${placeholder_prefix}_MODULES%"`, () => Array.isArray(modules) ? `[ ${modules.join(", ")} ]` : `{ ${Object.entries(modules).map(([
             _module_id,
             module
-        ]) => `${JSON.stringify(_module_id)}: ${module}`).join(",\n")}\n` : ""}}`), exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? `export default (${template.replace(/;\n$/, "")}).default;\n` : exports.includes("default") ? `const exports = ${template}\nexport default exports.default;\nexport const { ${exports.filter(key => key !== "default").join(", ")} } = exports;\n` : `export const { ${exports.join(", ")} } = ${template}` : template).replaceAll("\"%INIT_LOADED_MODULES%\"", Array.isArray(es_modules) ? "[]" : "{}").replaceAll("\"%ROOT_MODULE_ID%\"", JSON.stringify(module_id)).replaceAll("\"%ROOT_MODULE_IS_COMMONJS%\"", is_commonjs)}`);
+        ]) => `${JSON.stringify(_module_id)}: ${module}`).join(", ")} }`), exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? `export default (${template.replace(/;\n$/, "")}).default;\n` : exports.includes("default") ? `const exports = ${template}\nexport default exports.default;\nexport const { ${exports.filter(key => key !== "default").join(", ")} } = exports;\n` : `export const { ${exports.join(", ")} } = ${template}` : template).replaceAll("\"%INIT_LOADED_MODULES%\"", Array.isArray(es_modules) ? "[]" : "{}").replaceAll("\"%ROOT_MODULE_ID%\"", JSON.stringify(module_id)).replaceAll("\"%ROOT_MODULE_IS_COMMONJS%\"", is_commonjs)}`);
 
         if (mode !== null) {
             await chmod(output_file, mode);
@@ -297,7 +297,7 @@ export class Bundler {
 
             code = code.trim();
 
-            modules[module_id] = `${Array.isArray(modules) ? `// ${module_id}\n` : ""}${!is_commonjs ? "async " : ""}(load_es_module, load_commonjs_module${is_commonjs ? ", module, exports, require, __filename, __dirname" : ""}) => ${!code.startsWith("return ") ? `{\n${code}\n}` : `${code.includes("{") ? "(" : ""}${code.replaceAll(/(^return |;$)/g, "")}${code.includes("{") ? ")" : ""}`}`;
+            modules[module_id] = `${Array.isArray(modules) ? `// ${module_id}\n` : ""}${!is_commonjs ? "async " : ""}(load_es_module, load_commonjs_module_for_es${is_commonjs ? ", load_commonjs_module, module, exports, require, __filename, __dirname" : ""}) => ${!code.startsWith("return ") ? `{\n${code}\n}` : `${code.includes("{") ? "(" : ""}${code.replaceAll(/(^return |;$)/g, "")}${code.includes("{") ? ")" : ""}`}`;
         }
 
         return [
@@ -404,7 +404,7 @@ export class Bundler {
                 is_commonjs
             ] = result;
 
-            _code = _code.replaceAll(_import, `${start}${is_commonjs ? "load_commonjs_module" : "load_es_module"}(${JSON.stringify(module_id)})`);
+            _code = _code.replaceAll(_import, `${start}${is_commonjs ? "load_commonjs_module_for_es" : "load_es_module"}(${JSON.stringify(module_id)})`);
         }
 
         return _code;
