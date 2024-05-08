@@ -1,3 +1,1 @@
-# flux-build-utils
-
-Some utils for build
+# build-utils
