@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-05-14-1
+
+Changes:
+
+- Delete file filters
+
 ## v2024-05-08-1
 
 Changes:
