@@ -19,10 +19,46 @@ await (
          * @returns {Promise<{[key: string]: *}>}
          */
         async function load_es_module(module_id) {
-            loaded_es_modules[module_id] ??= (async () => await es_modules[module_id](
-                load_es_module,
-                load_commonjs_module_for_es
-            ) ?? Object.freeze({}))();
+            loaded_es_modules[module_id] ??= (async () => {
+                const exports = {};
+
+                /**
+                 * @param {string} key
+                 * @param {() => *} get_export
+                 * @returns {void}
+                 */
+                const export_es_key = (key, get_export) => {
+                    Object.defineProperty(exports, key, {
+                        configurable: true,
+                        enumerable: true,
+                        get: () => get_export()
+                    });
+                };
+
+                /**
+                 * @param {{[key: string]: *}} _exports
+                 * @returns {void}
+                 */
+                const export_es_keys = _exports => {
+                    Object.defineProperties(exports, Object.fromEntries(Object.keys(_exports).map(key => [
+                        key,
+                        {
+                            configurable: true,
+                            enumerable: true,
+                            get: () => _exports[key]
+                        }
+                    ])));
+                };
+
+                await es_modules[module_id](
+                    load_es_module,
+                    load_commonjs_module_for_es,
+                    export_es_key,
+                    export_es_keys
+                );
+
+                return Object.freeze(exports);
+            })();
 
             return loaded_es_modules[module_id];
         }
@@ -85,12 +121,9 @@ await (
                 ].map(key => [
                     key,
                     {
+                        configurable: true,
                         enumerable: true,
-                        ...key === "default" ? {
-                            value: exports
-                        } : {
-                            get: () => exports[key]
-                        }
+                        get: key === "default" ? () => exports : () => exports[key]
                     }
                 ]))));
             })();
