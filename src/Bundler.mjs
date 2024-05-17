@@ -86,14 +86,10 @@ export class Bundler {
         ].reduce((code, [
             placeholder_prefix,
             modules
-        ]) => code.replaceAll(`"%${placeholder_prefix}_MODULES%"`, () => Array.isArray(modules) ? `[ ${modules.join(", ")} ]` : `{ ${Object.entries(modules).map(([
+        ]) => code.replaceAll(`"%${placeholder_prefix}_MODULES%"`, () => Array.isArray(modules) ? `[${modules.join(", ")}]` : `{${Object.entries(modules).map(([
             _module_id,
             module
-        ]) => `${this.#stringifyKey(
-            _module_id
-        )}: ${module}`).join(", ")} }`), exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? `export default (${template.replace(/;\n$/, "")}).default;\n` : exports.includes("default") ? `const exports = ${template}\nexport default exports.default;\nexport const { ${exports.filter(key => key !== "default").join(", ")} } = exports;\n` : `export const { ${exports.join(", ")} } = ${template}` : template).replaceAll("\"%INIT_LOADED_MODULES%\"", Array.isArray(es_modules) ? "[]" : "{}").replaceAll("\"%ROOT_MODULE_ID%\"", this.#stringifyKey(
-            module_id
-        )).replaceAll("\"%ROOT_MODULE_IS_COMMONJS%\"", is_commonjs)}`);
+        ]) => `${JSON.stringify(_module_id)}: ${module}`).join(", ")}}`), exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? `export default (${template.replace(/;\n$/, "")}).default;\n` : exports.includes("default") ? `const exports = ${template}\nexport default exports.default;\nexport const {${exports.filter(key => key !== "default").join(", ")}} = exports;\n` : `export const {${exports.join(", ")}} = ${template}` : template).replaceAll("\"%INIT_LOADED_MODULES%\"", Array.isArray(es_modules) ? "[]" : "{}").replaceAll("\"%ROOT_MODULE_ID%\"", JSON.stringify(module_id)).replaceAll("\"%ROOT_MODULE_IS_COMMONJS%\"", is_commonjs)}`);
 
         if (mode !== null) {
             await chmod(output_file, mode);
@@ -214,7 +210,7 @@ export class Bundler {
                         code,
                         exports
                     ] = this.#replaceExportsWithExportKeys(
-                        `const style_sheet = new CSSStyleSheet();\nstyle_sheet.replaceSync(${JSON.stringify(code)});\nexport default style_sheet;\n`
+                        `const style_sheet = new CSSStyleSheet();\nstyle_sheet.replaceSync(${JSON.stringify(code)});\nexport default style_sheet;`
                     );
                     break;
 
@@ -229,7 +225,7 @@ export class Bundler {
                         code,
                         exports
                     ] = this.#replaceExportsWithExportKeys(
-                        `export default ${code};\n`
+                        `export default ${code};`
                     );
                     break;
 
@@ -248,7 +244,7 @@ export class Bundler {
                     ] = read_file;
 
                     if (is_commonjs && ext === "json") {
-                        code = `module.exports = ${code};\n`;
+                        code = `module.exports = ${code};`;
                     } else {
                         code = this.#replaceMisleadingKeywordsInComments(
                             code
@@ -303,7 +299,7 @@ export class Bundler {
 
             code = code.trim();
 
-            modules[module_id] = `${Array.isArray(modules) ? `// ${module_id}\n` : ""}${!is_commonjs ? "async " : ""}(load_es_module, load_commonjs_module_for_es, ${is_commonjs ? "load_commonjs_module, module, exports, require, __filename, __dirname" : "export_es_key, export_es_keys"}) => {\n${code}\n}`;
+            modules[module_id] = `${Array.isArray(modules) ? `// ${module_id}\n` : ""}${!is_commonjs ? "async " : ""}(load_es_module, load_commonjs_module_for_es, ${is_commonjs ? "load_commonjs_module, module, exports, require, __filename, __dirname" : "export_es_object, export_es_key"}) => {\n${code}\n}`;
         }
 
         return [
@@ -410,9 +406,7 @@ export class Bundler {
                 is_commonjs
             ] = result;
 
-            _code = _code.replaceAll(_import, `${start}${is_commonjs ? "load_commonjs_module_for_es" : "load_es_module"}(${this.#stringifyKey(
-                module_id
-            )})`);
+            _code = _code.replaceAll(_import, `${start}${is_commonjs ? "load_commonjs_module_for_es" : "load_es_module"}(${JSON.stringify(module_id)})`);
         }
 
         return _code;
@@ -431,90 +425,100 @@ export class Bundler {
             code.replaceAll(/export\s+((async\s+)?(class|const|function|function\s*\*|let|var)\s*(\w+))/g, (_, _export, __, ___, key) => {
                 exports.push(key);
 
-                return `export_es_key(${this.#stringifyKey(
-                    key
-                )}, () => ${key});\n${_export}`;
+                return `export_es_key(${JSON.stringify(key)}, () => ${key});\n${_export}`;
             }).replaceAll(/export\s+((const|let|var)\s*[{[]([^}\]]*)[}\]])/g, (_, _export, __, keys) => {
                 const _exports = [];
 
                 for (const [
                     key,
                     as = null
-                ] of keys.split(",").map(_key => _key.split(":").map(part => part.trim())).filter(([
+                ] of keys.split(",").map(_key => _key.split(":").map(__key => __key.trim())).filter(([
                     _key
                 ]) => _key !== "")) {
                     const _key = as ?? key;
 
                     exports.push(_key);
 
-                    _exports.push(`export_es_key(${this.#stringifyKey(
-                        _key
-                    )}, () => ${_key});`);
+                    _exports.push(`export_es_key(${JSON.stringify(_key)}, () => ${_key});`);
+                }
+
+                if (_exports.length === 0) {
+                    return _export;
                 }
 
                 return `${_exports.join("\n")}\n${_export}`;
             }).replaceAll(/export\s+(default)\s/g, (_, key) => {
-                const _key = `__export_${count++}__`;
+                const _key = `${key}_${count++}`;
 
                 exports.push(key);
 
-                return `export_es_key(${this.#stringifyKey(
-                    key
-                )}, () => ${_key});\nconst ${_key} = `;
-            }).replaceAll(/export\s*\{([^}]*)\}\s*from\s*(["'`][^"'`\n]+["'`])(\s*with\s*(\{[^}]*\}))?(\s*;+)?/g, (_, keys, from, __, _with = null) => {
-                const key = `__export_${count++}__`;
-
+                return `export_es_key(${JSON.stringify(key)}, () => ${_key});\nconst ${_key} = `;
+            }).replaceAll(/export\s*\{([^}]*)\}\s*from\s*(["'`][^"'`\n]+["'`])(\s*with\s*(\{[^}]*\}))?(\s*;+)?/g, (_, keys, path, __, _with = null) => {
                 const _exports = [];
 
                 for (const [
-                    _key,
+                    key,
                     as = null
-                ] of keys.split(",").map(__key => __key.split(" as ").map(part => part.trim())).filter(([
-                    __key
-                ]) => __key !== "")) {
-                    const __key = as ?? _key;
+                ] of keys.split(",").map(_key => _key.split(" as ").map(__key => __key.trim())).filter(([
+                    _key
+                ]) => _key !== "")) {
+                    const _key = as ?? key;
 
-                    exports.push(__key);
+                    exports.push(_key);
 
-                    _exports.push(`export_es_key(${this.#stringifyKey(
-                        __key
-                    )}, () => ${key}.${_key});`);
+                    _exports.push([
+                        key,
+                        _key
+                    ]);
                 }
 
-                return `${_exports.join("\n")}\nconst ${key} = await import(${from}${_with !== null ? `, { with: ${_with} }` : ""});`;
+                const _import = `await import(${path}${_with !== null ? `, {with: ${_with}}` : ""})`;
+
+                if (_exports.length === 0) {
+                    return `${_import};`;
+                }
+
+                if (_exports.length === 1) {
+                    return `export_es_object({${_exports[0][1]}: (${_import}).${_exports[0][0]}});`;
+                }
+
+                return `export_es_object(await (async () => {const imports = ${_import};return {${_exports.map(([
+                    key,
+                    _key
+                ]) => `${_key}: imports.${key}`).join(", ")}};})());`;
             }).replaceAll(/export\s*\{([^}]*)\}(\s*;+)?/g, (_, keys) => {
                 const _exports = [];
 
                 for (const [
                     key,
                     as = null
-                ] of keys.split(",").map(_key => _key.split(" as ").map(part => part.trim())).filter(([
+                ] of keys.split(",").map(_key => _key.split(" as ").map(__key => __key.trim())).filter(([
                     _key
                 ]) => _key !== "")) {
                     const _key = as ?? key;
 
                     exports.push(_key);
 
-                    _exports.push(`export_es_key(${this.#stringifyKey(
-                        _key
-                    )}, () => ${key});`);
+                    _exports.push(_key !== key ? `${_key}: ${key}` : _key);
                 }
 
-                return _exports.join("\n");
-            }).replaceAll(/export\s+\*(\s+as\s+(\w+))?\s+from\s*(["'`][^"'`\n]+["'`])(\s*;+)?/g, (_, __, key = null, path) => {
-                const _key = `__export_${count++}__`;
+                if (_exports.length === 0) {
+                    return "";
+                }
+
+                return `export_es_object({${_exports.join(", ")}});`;
+            }).replaceAll(/export\s+\*(\s+as\s+(\w+))?\s+from\s*(["'`][^"'`\n]+["'`])(\s*with\s*(\{[^}]*\}))?(\s*;+)?/g, (_, __, key = null, path, ___, _with = null) => {
+                const _import = `await import(${path}${_with !== null ? `, {with: ${_with}}` : ""})`;
 
                 if (key !== null) {
                     exports.push(key);
 
-                    return `export_es_key(${this.#stringifyKey(
-                        key
-                    )}, () => ${_key});\nconst ${_key} = await import(${path});`;
+                    return `export_es_object({${key}: ${_import}});`;
                 } else {
-                    return `const ${_key} = await import(${path});\nexport_es_keys(${_key});`;
+                    return `export_es_object(${_import});`;
                 }
             }),
-            exports
+            Array.from(new Set(exports))
         ];
     }
 
@@ -573,9 +577,7 @@ export class Bundler {
                 module_id
             ] = result;
 
-            _code = _code.replaceAll(_require, `${start}load_commonjs_module(${this.#stringifyKey(
-                module_id
-            )})`);
+            _code = _code.replaceAll(_require, `${start}load_commonjs_module(${JSON.stringify(module_id)})`);
         }
 
         return _code;
@@ -586,18 +588,6 @@ export class Bundler {
      * @returns {string}
      */
     #replaceStaticImportsWithDynamicImports(code) {
-        return code.replaceAll(/(import\s*)(\w+)(\s*,\s*\{([^}]*)\})?(\s*from)/g, (_, _import, default_property, __, properties = null, from) => `${_import}{ default: ${default_property}${properties !== null ? `, ${properties.trim()}` : ""} }${from}`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`\n]+["'`])\s*with\s*(\{[^}]*\})/g, (_, properties, path, _with) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path}, { with: ${_with} })`).replaceAll(/import\s*((\w+)\s*,\s*)?\*\s+as\s+(\w+)\s+from\s*(["'`][^"'`\n]+["'`])/g, (_, __, default_property = null, properties, path) => `const ${default_property !== null ? `{ default: ${default_property}, ...${properties} }` : `${properties}`} = await import(${path})`).replaceAll(/import\s*(\{[^}]*\})\s*from\s*(["'`][^"'`\n]+["'`])/g, (_, properties, path) => `const ${properties.replaceAll(" as ", ": ")} = await import(${path})`).replaceAll(/(^|\s)import\s*(["'`][^"'`\n]+["'`])/g, (_, start, path) => `${start}await import(${path})`);
-    }
-
-    /**
-     * @param {number | string} key
-     * @returns {string}
-     */
-    #stringifyKey(key) {
-        return typeof key === "string" && [
-            "\"",
-            "'",
-            "`"
-        ].some(char => key.startsWith(char)) ? key : JSON.stringify(key);
+        return code.replaceAll(/(import\s*)(\w+)(\s*,\s*\{([^}]*)\})?(\s*from)/g, (_, _import, default_property, __, properties = null, from) => `${_import}{default: ${default_property}${(properties?.trim() ?? "") !== "" ? `, ${properties}` : ""}}${from}`).replaceAll(/import\s*\{([^}]*)\}\s*from\s*(["'`][^"'`\n]+["'`])(\s*with\s*(\{[^}]*\}))?/g, (_, properties, path, __, _with = null) => `${properties.trim() !== "" ? `const {${properties.replaceAll(" as ", ": ")}} = ` : ""}await import(${path}${_with !== null ? `, {with: ${_with}}` : ""})`).replaceAll(/import\s*((\w+)\s*,\s*)?\*\s+as\s+(\w+)\s+from\s*(["'`][^"'`\n]+["'`])(\s*with\s*(\{[^}]*\}))?/g, (_, __, default_property = null, properties, path, ___, _with = null) => `const ${default_property !== null ? `{default: ${default_property}, ...${properties}}` : properties} = await import(${path}${_with !== null ? `, {with: ${_with}}` : ""})`).replaceAll(/(^|\s)import\s*(["'`][^"'`\n]+["'`])(\s*with\s*(\{[^}]*\}))?/g, (_, start, path, __, _with = null) => `${start}await import(${path}${_with !== null ? `, {with: ${_with}}` : ""})`);
     }
 }

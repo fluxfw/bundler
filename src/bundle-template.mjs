@@ -23,38 +23,38 @@ await (
                 const exports = {};
 
                 /**
-                 * @param {string} key
-                 * @param {() => *} get_export
+                 * @param {{[key: string]: *}} object
                  * @returns {void}
                  */
-                const export_es_key = (key, get_export) => {
-                    Object.defineProperty(exports, key, {
-                        configurable: true,
-                        enumerable: true,
-                        get: () => get_export()
-                    });
-                };
-
-                /**
-                 * @param {{[key: string]: *}} _exports
-                 * @returns {void}
-                 */
-                const export_es_keys = _exports => {
-                    Object.defineProperties(exports, Object.fromEntries(Object.keys(_exports).map(key => [
+                const export_es_object = object => {
+                    Object.defineProperties(exports, Object.fromEntries(Object.keys(object).map(key => [
                         key,
                         {
                             configurable: true,
                             enumerable: true,
-                            get: () => _exports[key]
+                            value: object[key]
                         }
                     ])));
+                };
+
+                /**
+                 * @param {string} key
+                 * @param {() => *} get_value
+                 * @returns {void}
+                 */
+                const export_es_key = (key, get_value) => {
+                    Object.defineProperty(exports, key, {
+                        configurable: true,
+                        enumerable: true,
+                        get: get_value
+                    });
                 };
 
                 await es_modules[module_id](
                     load_es_module,
                     load_commonjs_module_for_es,
-                    export_es_key,
-                    export_es_keys
+                    export_es_object,
+                    export_es_key
                 );
 
                 return Object.freeze(exports);
