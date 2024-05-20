@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-05-20-4
+
+Changes:
+
+- Fix minify js in css
+
 ## v2024-05-20-3
 
 Changes:

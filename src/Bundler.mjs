@@ -371,8 +371,8 @@ export class Bundler {
         if (minify_css_rule !== null) {
             for (const [
                 sheet,
-                ,
                 start,
+                ,
                 css,
                 end
             ] of _code.matchAll(/(sheet\s*\.\s*(insertRule|replace|replaceSync)\s*\(\s*["'`])([^"'`]+)(["'`]\s*\))/g)) {
@@ -404,8 +404,8 @@ export class Bundler {
 
             for (const [
                 query_selector,
-                ,
                 start,
+                ,
                 css,
                 end
             ] of _code.matchAll(/(\.\s*(querySelector|querySelectorAll)\s*\(\s*["'`])([^"'`]+)(["'`]\s*\))/g)) {
