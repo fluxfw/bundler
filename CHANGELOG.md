@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-05-20-3
+
+Changes:
+
+- Seperate minify css rule and selector with main minify css
+
 ## v2024-05-20-2
 
 Changes:

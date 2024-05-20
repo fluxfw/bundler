@@ -24,11 +24,13 @@ export class Bundler {
      * @param {string} output_file
      * @param {((path: string, parent_path?: string | null, default_resolve?: ((path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
      * @param {((css: string) => Promise<string>) | null} minify_css
+     * @param {((css: string) => Promise<string>) | null} minify_css_rule
+     * @param {((css: string) => Promise<string>) | null} minify_css_selector
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {boolean | null} dev
      * @returns {Promise<void>}
      */
-    async bundle(input_path, output_file, resolve = null, minify_css = null, minify_xml = null, dev = null) {
+    async bundle(input_path, output_file, resolve = null, minify_css = null, minify_css_rule = null, minify_css_selector = null, minify_xml = null, dev = null) {
         console.log(`Bundle ${output_file}`);
 
         const _dev = dev ?? false;
@@ -41,6 +43,8 @@ export class Bundler {
             null,
             resolve,
             !_dev ? minify_css : null,
+            !_dev ? minify_css_rule : null,
+            !_dev ? minify_css_selector : null,
             !_dev ? minify_xml : null,
             {},
             {},
@@ -101,6 +105,8 @@ export class Bundler {
      * @param {string | null} parent_path
      * @param {((path: string, parent_path?: string | null, default_resolve?: ((path: string, parent_path?: string | null) => Promise<string | false | null>) | null) => Promise<string | false | null>) | null} resolve
      * @param {((css: string) => Promise<string>) | null} minify_css
+     * @param {((css: string) => Promise<string>) | null} minify_css_rule
+     * @param {((css: string) => Promise<string>) | null} minify_css_selector
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: boolean}} modules_are_commonjs
      * @param {{[key: string]: number | string}} es_module_ids
@@ -110,7 +116,7 @@ export class Bundler {
      * @param {string | null} with_type
      * @returns {Promise<[number | string, string | null, string[], string, boolean] | null>}
      */
-    async #bundle(path, parent_path, resolve, minify_css, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, with_type = null) {
+    async #bundle(path, parent_path, resolve, minify_css, minify_css_rule, minify_css_selector, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, with_type = null) {
         const absolute_path = (resolve !== null ? await resolve(
             path,
             parent_path,
@@ -262,6 +268,8 @@ export class Bundler {
                                 absolute_path,
                                 resolve,
                                 minify_css,
+                                minify_css_rule,
+                                minify_css_selector,
                                 minify_xml,
                                 modules_are_commonjs,
                                 es_module_ids,
@@ -291,6 +299,8 @@ export class Bundler {
                             absolute_path,
                             resolve,
                             minify_css,
+                            minify_css_rule,
+                            minify_css_selector,
                             minify_xml,
                             modules_are_commonjs,
                             es_module_ids,
@@ -302,7 +312,8 @@ export class Bundler {
 
                         code = await this.#minifyCssInJS(
                             code,
-                            minify_css
+                            minify_css_rule,
+                            minify_css_selector
                         );
                     }
                 }
@@ -350,45 +361,62 @@ export class Bundler {
 
     /**
      * @param {string} code
-     * @param {((css: string) => Promise<string>) | null} minify_css
+     * @param {((css: string) => Promise<string>) | null} minify_css_rule
+     * @param {((css: string) => Promise<string>) | null} minify_css_selector
      * @returns {Promise<string>}
      */
-    async #minifyCssInJS(code, minify_css = null) {
-        if (minify_css === null) {
-            return code;
-        }
-
+    async #minifyCssInJS(code, minify_css_rule, minify_css_selector) {
         let _code = code;
 
-        for (const [
-            match_media,
-            start,
-            css,
-            end
-        ] of _code.matchAll(/(^|[\s(,=]matchMedia\s*\(\s*["'`])([^"'`]+)(["'`]\s*\))/g)) {
-            if (!_code.includes(match_media)) {
-                continue;
-            }
+        if (minify_css_rule !== null) {
+            for (const [
+                sheet,
+                ,
+                start,
+                css,
+                end
+            ] of _code.matchAll(/(sheet\s*\.\s*(insertRule|replace|replaceSync)\s*\(\s*["'`])([^"'`]+)(["'`]\s*\))/g)) {
+                if (!_code.includes(sheet)) {
+                    continue;
+                }
 
-            _code = _code.replaceAll(match_media, `${start}${await minify_css(
-                css
-            )}${end}`);
+                _code = _code.replaceAll(sheet, `${start}${await minify_css_rule(
+                    css
+                )}${end}`);
+            }
         }
 
-        for (const [
-            sheet,
-            ,
-            start,
-            css,
-            end
-        ] of _code.matchAll(/(sheet\s*\.\s*(insertRule|replace|replaceSync)\s*\(\s*["'`])([^"'`]+)(["'`]\s*\))/g)) {
-            if (!_code.includes(sheet)) {
-                continue;
+        if (minify_css_selector !== null) {
+            for (const [
+                match_media,
+                start,
+                css,
+                end
+            ] of _code.matchAll(/(^|[\s(,=]matchMedia\s*\(\s*["'`])([^"'`]+)(["'`]\s*\))/g)) {
+                if (!_code.includes(match_media)) {
+                    continue;
+                }
+
+                _code = _code.replaceAll(match_media, `${start}${await minify_css_selector(
+                    css
+                )}${end}`);
             }
 
-            _code = _code.replaceAll(sheet, `${start}${await minify_css(
-                css
-            )}${end}`);
+            for (const [
+                query_selector,
+                ,
+                start,
+                css,
+                end
+            ] of _code.matchAll(/(\.\s*(querySelector|querySelectorAll)\s*\(\s*["'`])([^"'`]+)(["'`]\s*\))/g)) {
+                if (!_code.includes(query_selector)) {
+                    continue;
+                }
+
+                _code = _code.replaceAll(query_selector, `${start}${await minify_css_selector(
+                    css
+                )}${end}`);
+            }
         }
 
         return _code;
@@ -422,6 +450,8 @@ export class Bundler {
      * @param {string} parent_path
      * @param {((path: string, parent_path?: string | null, default_resolve?: ((path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
      * @param {((css: string) => Promise<string>) | null} minify_css
+     * @param {((css: string) => Promise<string>) | null} minify_css_rule
+     * @param {((css: string) => Promise<string>) | null} minify_css_selector
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: boolean}} modules_are_commonjs
      * @param {{[key: string]: number | string}} es_module_ids
@@ -431,7 +461,7 @@ export class Bundler {
      * @param {string} code
      * @returns {Promise<string>}
      */
-    async #replaceDynamicImportsWithLoadModules(parent_path, resolve, minify_css, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, code) {
+    async #replaceDynamicImportsWithLoadModules(parent_path, resolve, minify_css, minify_css_rule, minify_css_selector, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, code) {
         let _code = code;
 
         for (const [
@@ -452,6 +482,8 @@ export class Bundler {
                 parent_path,
                 resolve,
                 minify_css,
+                minify_css_rule,
+                minify_css_selector,
                 minify_xml,
                 modules_are_commonjs,
                 es_module_ids,
@@ -601,6 +633,8 @@ export class Bundler {
      * @param {string} parent_path
      * @param {((path: string, parent_path?: string | null, default_resolve?: ((path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
      * @param {((css: string) => Promise<string>) | null} minify_css
+     * @param {((css: string) => Promise<string>) | null} minify_css_rule
+     * @param {((css: string) => Promise<string>) | null} minify_css_selector
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: boolean}} modules_are_commonjs
      * @param {{[key: string]: number | string}} es_module_ids
@@ -610,7 +644,7 @@ export class Bundler {
      * @param {string} code
      * @returns {Promise<string>}
      */
-    async #replaceRequiresWithLoadModules(parent_path, resolve, minify_css, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, code) {
+    async #replaceRequiresWithLoadModules(parent_path, resolve, minify_css, minify_css_rule, minify_css_selector, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, code) {
         let _code = code;
 
         for (const [
@@ -627,6 +661,8 @@ export class Bundler {
                 parent_path,
                 resolve,
                 minify_css,
+                minify_css_rule,
+                minify_css_selector,
                 minify_xml,
                 modules_are_commonjs,
                 es_module_ids,

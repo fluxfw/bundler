@@ -32,6 +32,17 @@ export class Minifier {
      * @returns {Promise<string>}
      */
     async minifyCSS(code) {
+        return (await new (await import("clean-css")).default({
+            level: 2,
+            returnPromise: true
+        }).minify(code)).styles;
+    }
+
+    /**
+     * @param {string} code
+     * @returns {Promise<string>}
+     */
+    async minifyCSSRule(code) {
         const {
             default: CleanCSS
         } = await import("clean-css");
@@ -52,6 +63,16 @@ export class Minifier {
         }
 
         return code.replaceAll(/\s/g, "");
+    }
+
+    /**
+     * @param {string} code
+     * @returns {Promise<string>}
+     */
+    async minifyCSSSelector(code) {
+        return this.#minify(
+            code
+        ).replaceAll(/\s*([,:])\s*/g, (_, char) => char);
     }
 
     /**
