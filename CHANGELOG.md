@@ -6,6 +6,13 @@ Changes:
 
 \-
 
+## v2024-05-20-1
+
+Changes:
+
+- Minify some css in js
+- Pass `default_resolve` to `resolve`
+
 ## v2024-05-17-1
 
 Changes:

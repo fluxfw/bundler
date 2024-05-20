@@ -22,7 +22,7 @@ export class Bundler {
     /**
      * @param {string} input_path
      * @param {string} output_file
-     * @param {((path: string, parent_path?: string | null) => Promise<string | false | null>) | null} resolve
+     * @param {((path: string, parent_path?: string | null, default_resolve?: ((path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {boolean | null} dev
@@ -37,8 +37,8 @@ export class Bundler {
         const commonjs_modules = structuredClone(es_modules);
 
         const result = await this.#bundle(
-            null,
             input_path,
+            null,
             resolve,
             !_dev ? minify_css : null,
             !_dev ? minify_xml : null,
@@ -97,9 +97,9 @@ export class Bundler {
     }
 
     /**
-     * @param {string | null} parent_path
      * @param {string} path
-     * @param {((path: string, parent_path?: string | null) => Promise<string | false | null>) | null} resolve
+     * @param {string | null} parent_path
+     * @param {((path: string, parent_path?: string | null, default_resolve?: ((path: string, parent_path?: string | null) => Promise<string | false | null>) | null) => Promise<string | false | null>) | null} resolve
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: boolean}} modules_are_commonjs
@@ -110,11 +110,18 @@ export class Bundler {
      * @param {string | null} with_type
      * @returns {Promise<[number | string, string | null, string[], string, boolean] | null>}
      */
-    async #bundle(parent_path, path, resolve, minify_css, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, with_type = null) {
+    async #bundle(path, parent_path, resolve, minify_css, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, with_type = null) {
         const absolute_path = (resolve !== null ? await resolve(
             path,
+            parent_path,
+            async (_path, _parent_path = null) => this.#defaultResolve(
+                _path,
+                _parent_path
+            )
+        ) : null) ?? await this.#defaultResolve(
+            path,
             parent_path
-        ) : null) ?? (!isBuiltin(path) ? createRequire(parent_path ?? join(process.cwd(), ".mjs")).resolve(path) : false);
+        );
 
         if (absolute_path === false) {
             return null;
@@ -292,6 +299,11 @@ export class Bundler {
                             commonjs_modules,
                             code
                         );
+
+                        code = await this.#minifyCssInJS(
+                            code,
+                            minify_css
+                        );
                     }
                 }
                     break;
@@ -313,6 +325,15 @@ export class Bundler {
 
     /**
      * @param {string} path
+     * @param {string | null} parent_path
+     * @returns {Promise<string | false>}
+     */
+    async #defaultResolve(path, parent_path = null) {
+        return !isBuiltin(path) ? createRequire(parent_path ?? join(process.cwd(), ".mjs")).resolve(path) : false;
+    }
+
+    /**
+     * @param {string} path
      * @returns {Promise<[string, string]>}
      */
     async #getMimeType(path) {
@@ -325,6 +346,52 @@ export class Bundler {
                 value
             ]) => value?.extensions?.includes(ext) ?? false)?.[0] ?? ""
         ];
+    }
+
+    /**
+     * @param {string} code
+     * @param {((css: string) => Promise<string>) | null} minify_css
+     * @returns {Promise<string>}
+     */
+    async #minifyCssInJS(code, minify_css = null) {
+        if (minify_css === null) {
+            return code;
+        }
+
+        let _code = code;
+
+        for (const [
+            match_media,
+            start,
+            css,
+            end
+        ] of _code.matchAll(/(^|[\s(,=]matchMedia\s*\(\s*["'`])([^"'`]+)(["'`]\s*\))/g)) {
+            if (!_code.includes(match_media)) {
+                continue;
+            }
+
+            _code = _code.replaceAll(match_media, `${start}${await minify_css(
+                css
+            )}${end}`);
+        }
+
+        for (const [
+            sheet,
+            ,
+            start,
+            css,
+            end
+        ] of _code.matchAll(/(sheet\s*\.\s*(insertRule|replace|replaceSync)\s*\(\s*["'`])([^"'`]+)(["'`]\s*\))/g)) {
+            if (!_code.includes(sheet)) {
+                continue;
+            }
+
+            _code = _code.replaceAll(sheet, `${start}${await minify_css(
+                css
+            )}${end}`);
+        }
+
+        return _code;
     }
 
     /**
@@ -353,7 +420,7 @@ export class Bundler {
 
     /**
      * @param {string} parent_path
-     * @param {((path: string, parent_path?: string | null) => Promise<string | false | null>) | null} resolve
+     * @param {((path: string, parent_path?: string | null, default_resolve?: ((path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: boolean}} modules_are_commonjs
@@ -381,8 +448,8 @@ export class Bundler {
             }
 
             const result = await this.#bundle(
-                parent_path,
                 path,
+                parent_path,
                 resolve,
                 minify_css,
                 minify_xml,
@@ -532,7 +599,7 @@ export class Bundler {
 
     /**
      * @param {string} parent_path
-     * @param {((path: string, parent_path?: string | null) => Promise<string | false | null>) | null} resolve
+     * @param {((path: string, parent_path?: string | null, default_resolve?: ((path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
      * @param {((css: string) => Promise<string>) | null} minify_css
      * @param {((css: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: boolean}} modules_are_commonjs
@@ -547,17 +614,17 @@ export class Bundler {
         let _code = code;
 
         for (const [
-            _require,
+            require,
             start,
             path
         ] of _code.matchAll(/(^|[\s(,=])require\s*\(\s*["'`]([^"'`\n]+)["'`]\s*\)/g)) {
-            if (!_code.includes(_require)) {
+            if (!_code.includes(require)) {
                 continue;
             }
 
             const result = await this.#bundle(
-                parent_path,
                 path,
+                parent_path,
                 resolve,
                 minify_css,
                 minify_xml,
@@ -577,7 +644,7 @@ export class Bundler {
                 module_id
             ] = result;
 
-            _code = _code.replaceAll(_require, `${start}load_commonjs_module(${JSON.stringify(module_id)})`);
+            _code = _code.replaceAll(require, `${start}load_commonjs_module(${JSON.stringify(module_id)})`);
         }
 
         return _code;
@@ -588,6 +655,6 @@ export class Bundler {
      * @returns {string}
      */
     #replaceStaticImportsWithDynamicImports(code) {
-        return code.replaceAll(/(import\s*)(\w+)(\s*,\s*\{([^}]*)\})?(\s*from)/g, (_, _import, default_property, __, properties = null, from) => `${_import}{default: ${default_property}${(properties?.trim() ?? "") !== "" ? `, ${properties}` : ""}}${from}`).replaceAll(/import\s*\{([^}]*)\}\s*from\s*(["'`][^"'`\n]+["'`])(\s*with\s*(\{[^}]*\}))?/g, (_, properties, path, __, _with = null) => `${properties.trim() !== "" ? `const {${properties.replaceAll(" as ", ": ")}} = ` : ""}await import(${path}${_with !== null ? `, {with: ${_with}}` : ""})`).replaceAll(/import\s*((\w+)\s*,\s*)?\*\s+as\s+(\w+)\s+from\s*(["'`][^"'`\n]+["'`])(\s*with\s*(\{[^}]*\}))?/g, (_, __, default_property = null, properties, path, ___, _with = null) => `const ${default_property !== null ? `{default: ${default_property}, ...${properties}}` : properties} = await import(${path}${_with !== null ? `, {with: ${_with}}` : ""})`).replaceAll(/(^|\s)import\s*(["'`][^"'`\n]+["'`])(\s*with\s*(\{[^}]*\}))?/g, (_, start, path, __, _with = null) => `${start}await import(${path}${_with !== null ? `, {with: ${_with}}` : ""})`);
+        return code.replaceAll(/(import\s*)(\w+)(\s*,\s*\{([^}]*)\})?(\s*from)/g, (_, _import, default_property, __, properties = null, from) => `${_import}{default: ${default_property}${(properties?.trim() ?? "") !== "" ? `, ${properties}` : ""}}${from}`).replaceAll(/import\s*\{([^}]*)\}\s*from\s*(["'`][^"'`\n]+["'`])(\s*with\s*(\{[^}]*\}))?/g, (_, properties, path, __, _with = null) => `${properties.trim() !== "" ? `const {${properties.replaceAll(" as ", ": ")}} = ` : ""}await import(${path}${_with !== null ? `, {with: ${_with}}` : ""})`).replaceAll(/import\s*((\w+)\s*,\s*)?\*\s+as\s+(\w+)\s+from\s*(["'`][^"'`\n]+["'`])(\s*with\s*(\{[^}]*\}))?/g, (_, __, default_property = null, properties, path, ___, _with = null) => `const ${default_property !== null ? `{default: ${default_property}, ...${properties}}` : properties} = await import(${path}${_with !== null ? `, {with: ${_with}}` : ""})`).replaceAll(/import\s*(["'`][^"'`\n]+["'`])(\s*with\s*(\{[^}]*\}))?/g, (_, path, __, _with = null) => `await import(${path}${_with !== null ? `, {with: ${_with}}` : ""})`);
     }
 }
