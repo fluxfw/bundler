@@ -32,15 +32,26 @@ export class Minifier {
      * @returns {Promise<string>}
      */
     async minifyCSS(code) {
-        const result = new (await import("clean-css")).default().minify(this.#minify(
-            code
-        ));
+        const {
+            default: CleanCSS
+        } = await import("clean-css");
 
-        if (result.errors.length > 0) {
-            throw result.errors;
+        for (const level of [
+            2,
+            1,
+            0
+        ]) {
+            const result = await new CleanCSS({
+                level,
+                returnPromise: true
+            }).minify(code);
+
+            if (result.styles !== "") {
+                return result.styles;
+            }
         }
 
-        return result.styles;
+        return code.replaceAll(/\s/g, "");
     }
 
     /**

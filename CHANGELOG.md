@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-05-20-2
+
+Changes:
+
+- Minfiy css with level 2 and fix minify js in css
+
 ## v2024-05-20-1
 
 Changes:
