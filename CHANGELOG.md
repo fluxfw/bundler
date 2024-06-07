@@ -6,6 +6,14 @@ Changes:
 
 \-
 
+## v2024-06-07-1
+
+Changes:
+
+- Fix `export const|let|var [|{ ...rest ]|} = ` destructing rest assignment export
+- Output commonjs option
+- Improve json/css
+
 ## v2024-05-20-4
 
 Changes:
