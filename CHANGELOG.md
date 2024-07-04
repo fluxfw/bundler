@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-07-04-2
+
+Changes:
+
+- Improve cache templates
+
 ## v2024-07-04-1
 
 Changes:

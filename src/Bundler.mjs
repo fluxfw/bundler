@@ -88,8 +88,10 @@ export class Bundler {
             });
         }
 
-        const bundle = (await this.#getTemplate(
-            `bundle.${_output_commonjs ? "c" : "m"}js`
+        const bundle = (await this.#readTemplate(
+            this.#getTemplatePath(
+                `bundle.${_output_commonjs ? "c" : "m"}js`
+            )
         )).replaceAll(/"%(COMMONJS_MODULES|ES_MODULES|INIT_LOADED_MODULES|ROOT_MODULE_ID|ROOT_MODULE_IS_COMMONJS)%"/g, (placeholder, key) => {
             switch (key) {
                 case "COMMONJS_MODULES":
@@ -116,10 +118,14 @@ export class Bundler {
             }
         });
 
-        await writeFile(output_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${!_output_commonjs && exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? (await this.#getTemplate(
-            "bundle-export-default.mjs"
-        )).replaceAll(/"%BUNDLE%"/g, () => `(${bundle.trim().replace(/;$/, "")})`) : exports.includes("default") ? (await this.#getTemplate(
-            "bundle-exports-default.mjs"
+        await writeFile(output_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${!_output_commonjs && exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? (await this.#readTemplate(
+            this.#getTemplatePath(
+                "bundle-export-default.mjs"
+            )
+        )).replaceAll(/"%BUNDLE%"/g, () => `(${bundle.trim().replace(/;$/, "")})`) : exports.includes("default") ? (await this.#readTemplate(
+            this.#getTemplatePath(
+                "bundle-exports-default.mjs"
+            )
         )).replaceAll(/"%(BUNDLE)%"|__(EXPORTS)__/g, (placeholder, key_1, key_2) => {
             switch (key_1 ?? key_2) {
                 case "BUNDLE":
@@ -131,8 +137,10 @@ export class Bundler {
                 default:
                     return placeholder;
             }
-        }) : (await this.#getTemplate(
-            "bundle-exports.mjs"
+        }) : (await this.#readTemplate(
+            this.#getTemplatePath(
+                "bundle-exports.mjs"
+            )
         )).replaceAll(/"%(BUNDLE)%"|__(EXPORTS)__/g, (placeholder, key_1, key_2) => {
             switch (key_1 ?? key_2) {
                 case "BUNDLE":
@@ -232,9 +240,9 @@ export class Bundler {
             let _absolute_path;
             switch (_with_type) {
                 case "css":
-                    _absolute_path = join(this.#getTemplatePath(
+                    _absolute_path = this.#getTemplatePath(
                         "css.mjs"
-                    ));
+                    );
 
                     for (const [
                         url,
@@ -287,7 +295,9 @@ export class Bundler {
                         );
                     }
 
-                    code = (await readFile(_absolute_path, "utf8")).replaceAll(/"%CSS%"/g, () => JSON.stringify(code));
+                    code = (await this.#readTemplate(
+                        _absolute_path
+                    )).replaceAll(/"%CSS%"/g, () => JSON.stringify(code));
                     break;
 
                 case "json":
@@ -295,7 +305,9 @@ export class Bundler {
                         `json.${is_commonjs ? "c" : "m"}js`
                     );
 
-                    code = (await readFile(_absolute_path, "utf8")).replaceAll(/"%JSON%"/g, () => code);
+                    code = (await this.#readTemplate(
+                        _absolute_path
+                    )).replaceAll(/"%JSON%"/g, () => code);
                     break;
 
                 default:
@@ -401,21 +413,6 @@ export class Bundler {
 
     /**
      * @param {string} name
-     * @returns {Promise<string>}
-     */
-    async #getTemplate(name) {
-        this.#templates[name] ??= (await this.#readFile(
-            this.#getTemplatePath(
-                name
-            ),
-            false
-        ))[0];
-
-        return this.#templates[name];
-    }
-
-    /**
-     * @param {string} name
      * @returns {string}
      */
     #getTemplatePath(name) {
@@ -515,6 +512,19 @@ export class Bundler {
             is_commonjs,
             is_commonjs && ext === "json" ? "json" : with_type
         ];
+    }
+
+    /**
+     * @param {string} path
+     * @returns {Promise<string>}
+     */
+    async #readTemplate(path) {
+        this.#templates[path] ??= (await this.#readFile(
+            path,
+            false
+        ))[0];
+
+        return this.#templates[path];
     }
 
     /**
