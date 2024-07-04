@@ -6,6 +6,14 @@ Changes:
 
 \-
 
+## v2024-07-04-1
+
+Changes:
+
+- Use current main file if available as `default_path` in `default_resolve` for better make work bundle main file from `node_modules`
+- Use `import.meta.filename` and `import.meta.dirname`
+- Cache templates
+
 ## v2024-06-07-1
 
 Changes:

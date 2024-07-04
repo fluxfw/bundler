@@ -1,10 +1,14 @@
 import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { chmod, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createRequire, isBuiltin } from "node:module";
 import { dirname, extname, join } from "node:path";
 
 export class Bundler {
+    /**
+     * @type {{[key: string]: string}}
+     */
+    #templates;
+
     /**
      * @returns {Promise<Bundler>}
      */
@@ -16,7 +20,7 @@ export class Bundler {
      * @private
      */
     constructor() {
-
+        this.#templates = {};
     }
 
     /**
@@ -84,10 +88,9 @@ export class Bundler {
             });
         }
 
-        const bundle = (await this.#readFile(
-            join(dirname(fileURLToPath(import.meta.url)), `bundle.${_output_commonjs ? "c" : "m"}js`),
-            false
-        ))[0].replaceAll(/"%(COMMONJS_MODULES|ES_MODULES|INIT_LOADED_MODULES|ROOT_MODULE_ID|ROOT_MODULE_IS_COMMONJS)%"/g, (placeholder, key) => {
+        const bundle = (await this.#getTemplate(
+            `bundle.${_output_commonjs ? "c" : "m"}js`
+        )).replaceAll(/"%(COMMONJS_MODULES|ES_MODULES|INIT_LOADED_MODULES|ROOT_MODULE_ID|ROOT_MODULE_IS_COMMONJS)%"/g, (placeholder, key) => {
             switch (key) {
                 case "COMMONJS_MODULES":
                 case "ES_MODULES": {
@@ -113,13 +116,11 @@ export class Bundler {
             }
         });
 
-        await writeFile(output_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${!_output_commonjs && exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? (await this.#readFile(
-            join(dirname(fileURLToPath(import.meta.url)), "bundle-export-default.mjs"),
-            false
-        ))[0].replaceAll(/"%BUNDLE%"/g, () => `(${bundle.trim().replace(/;$/, "")})`) : exports.includes("default") ? (await this.#readFile(
-            join(dirname(fileURLToPath(import.meta.url)), "bundle-exports-default.mjs"),
-            false
-        ))[0].replaceAll(/"%(BUNDLE)%"|__(EXPORTS)__/g, (placeholder, key_1, key_2) => {
+        await writeFile(output_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${!_output_commonjs && exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? (await this.#getTemplate(
+            "bundle-export-default.mjs"
+        )).replaceAll(/"%BUNDLE%"/g, () => `(${bundle.trim().replace(/;$/, "")})`) : exports.includes("default") ? (await this.#getTemplate(
+            "bundle-exports-default.mjs"
+        )).replaceAll(/"%(BUNDLE)%"|__(EXPORTS)__/g, (placeholder, key_1, key_2) => {
             switch (key_1 ?? key_2) {
                 case "BUNDLE":
                     return bundle.trim().replace(/;$/, "");
@@ -130,10 +131,9 @@ export class Bundler {
                 default:
                     return placeholder;
             }
-        }) : (await this.#readFile(
-            join(dirname(fileURLToPath(import.meta.url)), "bundle-exports.mjs"),
-            false
-        ))[0].replaceAll(/"%(BUNDLE)%"|__(EXPORTS)__/g, (placeholder, key_1, key_2) => {
+        }) : (await this.#getTemplate(
+            "bundle-exports.mjs"
+        )).replaceAll(/"%(BUNDLE)%"|__(EXPORTS)__/g, (placeholder, key_1, key_2) => {
             switch (key_1 ?? key_2) {
                 case "BUNDLE":
                     return bundle.trim().replace(/;$/, "");
@@ -232,7 +232,9 @@ export class Bundler {
             let _absolute_path;
             switch (_with_type) {
                 case "css":
-                    _absolute_path = join(dirname(fileURLToPath(import.meta.url)), "css.mjs");
+                    _absolute_path = join(this.#getTemplatePath(
+                        "css.mjs"
+                    ));
 
                     for (const [
                         url,
@@ -289,7 +291,9 @@ export class Bundler {
                     break;
 
                 case "json":
-                    _absolute_path = join(dirname(fileURLToPath(import.meta.url)), `json.${is_commonjs ? "c" : "m"}js`);
+                    _absolute_path = this.#getTemplatePath(
+                        `json.${is_commonjs ? "c" : "m"}js`
+                    );
 
                     code = (await readFile(_absolute_path, "utf8")).replaceAll(/"%JSON%"/g, () => code);
                     break;
@@ -376,7 +380,7 @@ export class Bundler {
      * @returns {Promise<string | false>}
      */
     async #defaultResolve(path, parent_path = null) {
-        return !isBuiltin(path) ? createRequire(parent_path ?? join(process.cwd(), ".mjs")).resolve(path) : false;
+        return !isBuiltin(path) ? /*import.meta.resolve(path, pathToFileURL(parent_path ?? process.argv[1] ?? join(process.cwd(), ".mjs")))*/createRequire(parent_path ?? process.argv[1] ?? join(process.cwd(), ".cjs")).resolve(path) : false;
     }
 
     /**
@@ -393,6 +397,29 @@ export class Bundler {
                 value
             ]) => value?.extensions?.includes(ext) ?? false)?.[0] ?? ""
         ];
+    }
+
+    /**
+     * @param {string} name
+     * @returns {Promise<string>}
+     */
+    async #getTemplate(name) {
+        this.#templates[name] ??= (await this.#readFile(
+            this.#getTemplatePath(
+                name
+            ),
+            false
+        ))[0];
+
+        return this.#templates[name];
+    }
+
+    /**
+     * @param {string} name
+     * @returns {string}
+     */
+    #getTemplatePath(name) {
+        return join(import.meta.dirname, name);
     }
 
     /**

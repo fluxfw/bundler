@@ -76,14 +76,7 @@ await (
                         exports: {}
                     };
 
-                    let __filename, __dirname;
-                    if (require !== null) {
-                        __filename = require("node:url").fileURLToPath(import.meta.url);
-                        __dirname = require("node:path").dirname(__filename);
-                    } else {
-                        __filename = new URL(import.meta.url).pathname;
-                        __dirname = __filename.substring(0, __filename.lastIndexOf("/"));
-                    }
+                    const __filename = import.meta.filename ?? (require !== null ? require("node:url").fileURLToPath(import.meta.url) : new URL(import.meta.url).pathname);
 
                     commonjs_modules[module_id](
                         load_es_module,
@@ -93,7 +86,7 @@ await (
                         module.exports,
                         require,
                         __filename,
-                        __dirname
+                        import.meta.dirname ?? (require !== null ? require("node:path").dirname(__filename) : __filename.substring(0, __filename.lastIndexOf("/")))
                     );
 
                     return module.exports ?? Object.freeze({});
