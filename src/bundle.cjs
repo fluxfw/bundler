@@ -4,7 +4,7 @@ module.exports = (
      * @param {string[] | {[key: string]: string}} es_modules
      * @param {string[] | {[key: string]: string}} init_loaded_modules
      * @param {number | string} root_module_id
-     * @returns {{[key: string]: *}}
+     * @returns {*}
      */
     (commonjs_modules, es_modules, init_loaded_modules, root_module_id) => {
         const loaded_commonjs_modules = structuredClone(init_loaded_modules);
@@ -13,7 +13,7 @@ module.exports = (
 
         /**
          * @param {number | string} module_id
-         * @returns {Promise<{[key: string]: *}>}
+         * @returns {Promise<*>}
          */
         async function load_es_module(module_id) {
             loaded_es_modules[module_id] ??= (async () => {
@@ -51,7 +51,15 @@ module.exports = (
                     load_es_module,
                     load_commonjs_module_for_es,
                     export_es_object,
-                    export_es_key
+                    export_es_key,
+                    {
+                        dirname: __dirname,
+                        filename: __filename,
+                        resolve: () => {
+                            throw new Error("resolve is not supported!");
+                        },
+                        url: require("node:url").pathToFileURL(__filename)
+                    }
                 );
 
                 return Object.freeze(exports);
@@ -62,7 +70,7 @@ module.exports = (
 
         /**
          * @param {number | string} module_id
-         * @returns {{[key: string]: *}}
+         * @returns {*}
          */
         function load_commonjs_module(module_id) {
             if (!Object.hasOwn(loaded_commonjs_modules, module_id)) {
@@ -95,7 +103,7 @@ module.exports = (
 
         /**
          * @param {number | string} module_id
-         * @returns {Promise<{[key: string]: *}>}
+         * @returns {Promise<*>}
          */
         async function load_commonjs_module_for_es(module_id) {
             loaded_commonjs_modules_for_es[module_id] ??= (async () => {

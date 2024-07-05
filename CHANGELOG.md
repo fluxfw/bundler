@@ -6,6 +6,13 @@ Changes:
 
 \-
 
+## v2024-07-05-1
+
+Changes:
+
+- Replace `import.meta` in ESM to variable for polyfill in commonjs output
+- Extract module function to file
+
 ## v2024-07-04-2
 
 Changes:

@@ -5,7 +5,7 @@ await (
      * @param {string[] | {[key: string]: string}} init_loaded_modules
      * @param {number | string} root_module_id
      * @param {boolean} root_module_is_commonjs
-     * @returns {Promise<{[key: string]: *}}
+     * @returns {Promise<*>}
      */
     async (es_modules, commonjs_modules, init_loaded_modules, root_module_id, root_module_is_commonjs) => {
         const require = typeof process !== "undefined" ? (await import("node:module")).createRequire(import.meta.url) : null;
@@ -16,7 +16,7 @@ await (
 
         /**
          * @param {number | string} module_id
-         * @returns {Promise<{[key: string]: *}>}
+         * @returns {Promise<*>}
          */
         async function load_es_module(module_id) {
             loaded_es_modules[module_id] ??= (async () => {
@@ -54,7 +54,8 @@ await (
                     load_es_module,
                     load_commonjs_module_for_es,
                     export_es_object,
-                    export_es_key
+                    export_es_key,
+                    import.meta
                 );
 
                 return Object.freeze(exports);
@@ -65,7 +66,7 @@ await (
 
         /**
          * @param {number | string} module_id
-         * @returns {{[key: string]: *}}
+         * @returns {*}
          */
         function load_commonjs_module(module_id) {
             if (!Object.hasOwn(loaded_commonjs_modules, module_id)) {
@@ -84,7 +85,9 @@ await (
                         load_commonjs_module,
                         module,
                         module.exports,
-                        require,
+                        require ?? (() => {
+                            throw new Error("require is not supported!");
+                        }),
                         __filename,
                         import.meta.dirname ?? (require !== null ? require("node:path").dirname(__filename) : __filename.substring(0, __filename.lastIndexOf("/")))
                     );
@@ -100,7 +103,7 @@ await (
 
         /**
          * @param {number | string} module_id
-         * @returns {Promise<{[key: string]: *}>}
+         * @returns {Promise<*>}
          */
         async function load_commonjs_module_for_es(module_id) {
             loaded_commonjs_modules_for_es[module_id] ??= (async () => {

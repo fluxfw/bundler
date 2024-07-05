@@ -1,1 +1,1 @@
-export default "%BUNDLE%".default;
+export default ("%BUNDLE%").default;

@@ -7,7 +7,7 @@ export class Bundler {
     /**
      * @type {{[key: string]: string}}
      */
-    #templates;
+    #read_file_cache;
 
     /**
      * @returns {Promise<Bundler>}
@@ -20,7 +20,7 @@ export class Bundler {
      * @private
      */
     constructor() {
-        this.#templates = {};
+        this.#read_file_cache = {};
     }
 
     /**
@@ -88,8 +88,8 @@ export class Bundler {
             });
         }
 
-        const bundle = (await this.#readTemplate(
-            this.#getTemplatePath(
+        const bundle = (await this.#readFileCached(
+            this.#getBundleFilePath(
                 `bundle.${_output_commonjs ? "c" : "m"}js`
             )
         )).replaceAll(/"%(COMMONJS_MODULES|ES_MODULES|INIT_LOADED_MODULES|ROOT_MODULE_ID|ROOT_MODULE_IS_COMMONJS)%"/g, (placeholder, key) => {
@@ -118,12 +118,12 @@ export class Bundler {
             }
         });
 
-        await writeFile(output_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${!_output_commonjs && exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? (await this.#readTemplate(
-            this.#getTemplatePath(
+        await writeFile(output_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${!_output_commonjs && exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? (await this.#readFileCached(
+            this.#getBundleFilePath(
                 "bundle-export-default.mjs"
             )
-        )).replaceAll(/"%BUNDLE%"/g, () => `(${bundle.trim().replace(/;$/, "")})`) : exports.includes("default") ? (await this.#readTemplate(
-            this.#getTemplatePath(
+        )).replaceAll(/"%BUNDLE%"/g, () => bundle.trim().replace(/;$/, "")) : exports.includes("default") ? (await this.#readFileCached(
+            this.#getBundleFilePath(
                 "bundle-exports-default.mjs"
             )
         )).replaceAll(/"%(BUNDLE)%"|__(EXPORTS)__/g, (placeholder, key_1, key_2) => {
@@ -137,8 +137,8 @@ export class Bundler {
                 default:
                     return placeholder;
             }
-        }) : (await this.#readTemplate(
-            this.#getTemplatePath(
+        }) : (await this.#readFileCached(
+            this.#getBundleFilePath(
                 "bundle-exports.mjs"
             )
         )).replaceAll(/"%(BUNDLE)%"|__(EXPORTS)__/g, (placeholder, key_1, key_2) => {
@@ -240,7 +240,7 @@ export class Bundler {
             let _absolute_path;
             switch (_with_type) {
                 case "css":
-                    _absolute_path = this.#getTemplatePath(
+                    _absolute_path = this.#getBundleFilePath(
                         "css.mjs"
                     );
 
@@ -295,17 +295,17 @@ export class Bundler {
                         );
                     }
 
-                    code = (await this.#readTemplate(
+                    code = (await this.#readFileCached(
                         _absolute_path
                     )).replaceAll(/"%CSS%"/g, () => JSON.stringify(code));
                     break;
 
                 case "json":
-                    _absolute_path = this.#getTemplatePath(
+                    _absolute_path = this.#getBundleFilePath(
                         `json.${is_commonjs ? "c" : "m"}js`
                     );
 
-                    code = (await this.#readTemplate(
+                    code = (await this.#readFileCached(
                         _absolute_path
                     )).replaceAll(/"%JSON%"/g, () => code);
                     break;
@@ -349,6 +349,10 @@ export class Bundler {
                 ] = this.#replaceExportsWithExportKeys(
                     code
                 );
+
+                code = this.#replaceImportMetaWithVariable(
+                    code
+                );
             }
 
             code = await this.#replaceDynamicImportsWithLoadModules(
@@ -372,9 +376,11 @@ export class Bundler {
                 minify_css_selector
             );
 
-            code = code.trim();
-
-            modules[module_id] = `${Array.isArray(modules) ? `// ${module_id}\n` : ""}${!is_commonjs ? "async " : ""}(load_es_module, load_commonjs_module_for_es, ${is_commonjs ? "load_commonjs_module, module, exports, require, __filename, __dirname" : "export_es_object, export_es_key"}) => {\n${code}\n}`;
+            modules[module_id] = `${Array.isArray(modules) ? `// ${module_id}\n` : ""}${(await this.#readFileCached(
+                this.#getBundleFilePath(
+                    `module.${is_commonjs ? "c" : "m"}js`
+                )
+            )).replaceAll(/"%CODE%"/g, () => code.trim()).trim()}`;
         }
 
         return [
@@ -392,7 +398,15 @@ export class Bundler {
      * @returns {Promise<string | false>}
      */
     async #defaultResolve(path, parent_path = null) {
-        return !isBuiltin(path) ? /*import.meta.resolve(path, pathToFileURL(parent_path ?? process.argv[1] ?? join(process.cwd(), ".mjs")))*/createRequire(parent_path ?? process.argv[1] ?? join(process.cwd(), ".cjs")).resolve(path) : false;
+        return !isBuiltin(path) ? /*fileURLToPath(import.meta.resolve(path, pathToFileURL(parent_path ?? process.argv[1] ?? join(process.cwd(), ".mjs"))))*/createRequire(parent_path ?? process.argv[1] ?? join(process.cwd(), ".cjs")).resolve(path) : false;
+    }
+
+    /**
+     * @param {string} name
+     * @returns {string}
+     */
+    #getBundleFilePath(name) {
+        return join(import.meta.dirname, name);
     }
 
     /**
@@ -409,14 +423,6 @@ export class Bundler {
                 value
             ]) => value?.extensions?.includes(ext) ?? false)?.[0] ?? ""
         ];
-    }
-
-    /**
-     * @param {string} name
-     * @returns {string}
-     */
-    #getTemplatePath(name) {
-        return join(import.meta.dirname, name);
     }
 
     /**
@@ -518,13 +524,13 @@ export class Bundler {
      * @param {string} path
      * @returns {Promise<string>}
      */
-    async #readTemplate(path) {
-        this.#templates[path] ??= (await this.#readFile(
+    async #readFileCached(path) {
+        this.#read_file_cache[path] ??= (await this.#readFile(
             path,
             false
         ))[0];
 
-        return this.#templates[path];
+        return this.#read_file_cache[path];
     }
 
     /**
@@ -615,7 +621,7 @@ export class Bundler {
                 ] of keys.split(",").map(_key => _key.split(":").map(__key => __key.trim())).filter(([
                     _key
                 ]) => _key !== "")) {
-                    const _key = as ?? key.replace(/^\.\.\.\s*/g, "");
+                    const _key = as ?? key.replace(/^\.\.\.\s*/, "");
 
                     exports.push(_key);
 
@@ -700,6 +706,14 @@ export class Bundler {
             }),
             Array.from(new Set(exports))
         ];
+    }
+
+    /**
+     * @param {string} code
+     * @returns {string}
+     */
+    #replaceImportMetaWithVariable(code) {
+        return code.replaceAll(/import\s*\.\s*meta/g, () => "import_meta");
     }
 
     /**
