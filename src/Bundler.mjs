@@ -456,7 +456,7 @@ export class Bundler {
      * @returns {string}
      */
     #getTemplatePath(file) {
-        return join(import.meta.dirname, "template", file);
+        return join(import.meta.dirname, "Template", file);
     }
 
     /**
