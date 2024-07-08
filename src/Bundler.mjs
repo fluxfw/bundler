@@ -26,37 +26,43 @@ export class Bundler {
     /**
      * @param {string} input_path
      * @param {string} output_file
-     * @param {((path: string, parent_path?: string | null, default_resolve?: ((path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
-     * @param {((css: string) => Promise<string>) | null} minify_css
-     * @param {((css: string) => Promise<string>) | null} minify_css_rule
-     * @param {((css: string) => Promise<string>) | null} minify_css_selector
-     * @param {((css: string) => Promise<string>) | null} minify_xml
+     * @param {((type: string, path: string, parent_path?: string | null, default_resolve?: ((type: string, path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
+     * @param {boolean | null} minify
+     * @param {((code: string) => Promise<string>) | null} minify_esm_javascript
+     * @param {((code: string) => Promise<string>) | null} minify_commonjs_javascript
+     * @param {((code: string) => Promise<string>) | null} minify_css
+     * @param {((code: string) => Promise<string>) | null} minify_css_rule
+     * @param {((code: string) => Promise<string>) | null} minify_css_selector
+     * @param {((code: string) => Promise<string>) | null} minify_xml
      * @param {boolean | null} dev
      * @param {boolean | null} output_commonjs
      * @returns {Promise<void>}
      */
-    async bundle(input_path, output_file, resolve = null, minify_css = null, minify_css_rule = null, minify_css_selector = null, minify_xml = null, dev = null, output_commonjs = null) {
+    async bundle(input_path, output_file, resolve = null, minify = null, minify_esm_javascript = null, minify_commonjs_javascript = null, minify_css = null, minify_css_rule = null, minify_css_selector = null, minify_xml = null, dev = null, output_commonjs = null) {
         console.log(`Bundle ${output_file}`);
 
         const _dev = dev ?? false;
+        const _minify = minify ?? !_dev;
 
         const init_modules = _dev ? {} : [];
         const es_modules = structuredClone(init_modules);
         const commonjs_modules = structuredClone(init_modules);
+        const _output_commonjs = output_commonjs ?? false;
 
         const result = await this.#bundle(
             input_path,
             null,
             resolve,
-            !_dev ? minify_css : null,
-            !_dev ? minify_css_rule : null,
-            !_dev ? minify_css_selector : null,
-            !_dev ? minify_xml : null,
+            _minify ? minify_css : null,
+            _minify ? minify_css_rule : null,
+            _minify ? minify_css_selector : null,
+            _minify ? minify_xml : null,
             {},
             {},
             {},
             es_modules,
-            commonjs_modules
+            commonjs_modules,
+            _output_commonjs
         );
 
         if (result === null) {
@@ -70,8 +76,6 @@ export class Bundler {
             absolute_path,
             is_commonjs
         ] = result;
-
-        const _output_commonjs = output_commonjs ?? false;
 
         if (_output_commonjs && !is_commonjs) {
             throw Error("Can't output commonjs if input is not!");
@@ -89,7 +93,7 @@ export class Bundler {
         }
 
         const bundle = (await this.#readFileCached(
-            this.#getBundleFilePath(
+            this.#getTemplatePath(
                 `bundle.${_output_commonjs ? "c" : "m"}js`
             )
         )).replaceAll(/"%(COMMONJS_MODULES|ES_MODULES|INIT_LOADED_MODULES|ROOT_MODULE_ID|ROOT_MODULE_IS_COMMONJS)%"/g, (placeholder, key) => {
@@ -118,12 +122,12 @@ export class Bundler {
             }
         });
 
-        await writeFile(output_file, `${hash_bang !== null ? `${hash_bang}\n` : ""}${!_output_commonjs && exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? (await this.#readFileCached(
-            this.#getBundleFilePath(
+        const code = `${hash_bang !== null ? `${hash_bang}\n` : ""}${!_output_commonjs && exports.length > 0 ? exports.length === 1 && exports[0] === "default" ? (await this.#readFileCached(
+            this.#getTemplatePath(
                 "bundle-export-default.mjs"
             )
         )).replaceAll(/"%BUNDLE%"/g, () => bundle.trim().replace(/;$/, "")) : exports.includes("default") ? (await this.#readFileCached(
-            this.#getBundleFilePath(
+            this.#getTemplatePath(
                 "bundle-exports-default.mjs"
             )
         )).replaceAll(/"%(BUNDLE)%"|__(EXPORTS)__/g, (placeholder, key_1, key_2) => {
@@ -138,7 +142,7 @@ export class Bundler {
                     return placeholder;
             }
         }) : (await this.#readFileCached(
-            this.#getBundleFilePath(
+            this.#getTemplatePath(
                 "bundle-exports.mjs"
             )
         )).replaceAll(/"%(BUNDLE)%"|__(EXPORTS)__/g, (placeholder, key_1, key_2) => {
@@ -152,7 +156,13 @@ export class Bundler {
                 default:
                     return placeholder;
             }
-        }) : bundle}`);
+        }) : bundle}`;
+
+        const minify_bundle = _minify ? !_output_commonjs ? minify_esm_javascript : minify_commonjs_javascript : null;
+
+        await writeFile(output_file, minify_bundle !== null ? await minify_bundle(
+            code
+        ) : code);
 
         if (mode !== null) {
             await chmod(output_file, mode);
@@ -163,20 +173,24 @@ export class Bundler {
      * @param {string} path
      * @param {string | null} parent_path
      * @param {((path: string, parent_path?: string | null, default_resolve?: ((path: string, parent_path?: string | null) => Promise<string | false | null>) | null) => Promise<string | false | null>) | null} resolve
-     * @param {((css: string) => Promise<string>) | null} minify_css
-     * @param {((css: string) => Promise<string>) | null} minify_css_rule
-     * @param {((css: string) => Promise<string>) | null} minify_css_selector
-     * @param {((css: string) => Promise<string>) | null} minify_xml
+     * @param {((code: string) => Promise<string>) | null} minify_css
+     * @param {((code: string) => Promise<string>) | null} minify_css_rule
+     * @param {((code: string) => Promise<string>) | null} minify_css_selector
+     * @param {((code: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: boolean}} modules_are_commonjs
      * @param {{[key: string]: number | string}} es_module_ids
      * @param {{[key: string]: number | string}} commonjs_module_ids
      * @param {string[] | {[key: string]: string}} es_modules
      * @param {string[] | {[key: string]: string}} commonjs_modules
+     * @param {boolean} output_commonjs
      * @param {string | null} with_type
      * @returns {Promise<[number | string, string | null, string[], string, boolean] | null>}
      */
-    async #bundle(path, parent_path, resolve, minify_css, minify_css_rule, minify_css_selector, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, with_type = null) {
+    async #bundle(path, parent_path, resolve, minify_css, minify_css_rule, minify_css_selector, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, output_commonjs, with_type = null) {
+        const resolve_type = !((parent_path !== null ? modules_are_commonjs[parent_path] : null) ?? output_commonjs) ? "import" : "require";
+
         const absolute_path = await this.#resolve(
+            resolve_type,
             path,
             parent_path,
             resolve
@@ -240,7 +254,7 @@ export class Bundler {
             let _absolute_path;
             switch (_with_type) {
                 case "css":
-                    _absolute_path = this.#getBundleFilePath(
+                    _absolute_path = this.#getTemplatePath(
                         "css.mjs"
                     );
 
@@ -253,6 +267,7 @@ export class Bundler {
                         }
 
                         const __absolute_path = await this.#resolve(
+                            resolve_type,
                             _path,
                             absolute_path,
                             resolve
@@ -301,7 +316,7 @@ export class Bundler {
                     break;
 
                 case "json":
-                    _absolute_path = this.#getBundleFilePath(
+                    _absolute_path = this.#getTemplatePath(
                         `json.${is_commonjs ? "c" : "m"}js`
                     );
 
@@ -332,6 +347,7 @@ export class Bundler {
                     commonjs_module_ids,
                     es_modules,
                     commonjs_modules,
+                    output_commonjs,
                     code
                 );
 
@@ -367,6 +383,7 @@ export class Bundler {
                 commonjs_module_ids,
                 es_modules,
                 commonjs_modules,
+                output_commonjs,
                 code
             );
 
@@ -377,7 +394,7 @@ export class Bundler {
             );
 
             modules[module_id] = `${Array.isArray(modules) ? `// ${module_id}\n` : ""}${(await this.#readFileCached(
-                this.#getBundleFilePath(
+                this.#getTemplatePath(
                     `module.${is_commonjs ? "c" : "m"}js`
                 )
             )).replaceAll(/"%CODE%"/g, () => code.trim()).trim()}`;
@@ -393,20 +410,29 @@ export class Bundler {
     }
 
     /**
+     * @param {string} type
      * @param {string} path
      * @param {string | null} parent_path
      * @returns {Promise<string | false>}
      */
-    async #defaultResolve(path, parent_path = null) {
-        return !isBuiltin(path) ? /*fileURLToPath(import.meta.resolve(path, pathToFileURL(parent_path ?? process.argv[1] ?? join(process.cwd(), ".mjs"))))*/createRequire(parent_path ?? process.argv[1] ?? join(process.cwd(), ".cjs")).resolve(path) : false;
-    }
+    async #defaultResolve(type, path, parent_path = null) {
+        if (isBuiltin(path)) {
+            return false;
+        }
 
-    /**
-     * @param {string} name
-     * @returns {string}
-     */
-    #getBundleFilePath(name) {
-        return join(import.meta.dirname, name);
+        switch (type) {
+            // TODO: NodeJS does not support pass `parent_path` to `import.meta.resolve` without runtime flag
+            /*case "import":
+                return fileURLToPath(import.meta.resolve(path, pathToFileURL(parent_path ?? process.argv[1] ?? join(process.cwd(), ".mjs"))));*/
+
+            case "import":
+            case "require":
+                return createRequire(parent_path ?? process.argv[1] ?? join(process.cwd(), ".cjs")).resolve(path);
+
+            default:
+                return false;
+
+        }
     }
 
     /**
@@ -426,9 +452,17 @@ export class Bundler {
     }
 
     /**
+     * @param {string} file
+     * @returns {string}
+     */
+    #getTemplatePath(file) {
+        return join(import.meta.dirname, "template", file);
+    }
+
+    /**
      * @param {string} code
-     * @param {((css: string) => Promise<string>) | null} minify_css_rule
-     * @param {((css: string) => Promise<string>) | null} minify_css_selector
+     * @param {((code: string) => Promise<string>) | null} minify_css_rule
+     * @param {((code: string) => Promise<string>) | null} minify_css_selector
      * @returns {Promise<string>}
      */
     async #minifyCssInJS(code, minify_css_rule, minify_css_selector) {
@@ -535,20 +569,21 @@ export class Bundler {
 
     /**
      * @param {string} parent_path
-     * @param {((path: string, parent_path?: string | null, default_resolve?: ((path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
-     * @param {((css: string) => Promise<string>) | null} minify_css
-     * @param {((css: string) => Promise<string>) | null} minify_css_rule
-     * @param {((css: string) => Promise<string>) | null} minify_css_selector
-     * @param {((css: string) => Promise<string>) | null} minify_xml
+     * @param {((type: string, path: string, parent_path?: string | null, default_resolve?: ((type: string, path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
+     * @param {((code: string) => Promise<string>) | null} minify_css
+     * @param {((code: string) => Promise<string>) | null} minify_css_rule
+     * @param {((code: string) => Promise<string>) | null} minify_css_selector
+     * @param {((code: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: boolean}} modules_are_commonjs
      * @param {{[key: string]: number | string}} es_module_ids
      * @param {{[key: string]: number | string}} commonjs_module_ids
      * @param {string[] | {[key: string]: string}} es_modules
      * @param {string[] | {[key: string]: string}} commonjs_modules
+     * @param {boolean} output_commonjs
      * @param {string} code
      * @returns {Promise<string>}
      */
-    async #replaceDynamicImportsWithLoadModules(parent_path, resolve, minify_css, minify_css_rule, minify_css_selector, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, code) {
+    async #replaceDynamicImportsWithLoadModules(parent_path, resolve, minify_css, minify_css_rule, minify_css_selector, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, output_commonjs, code) {
         let _code = code;
 
         for (const [
@@ -577,6 +612,7 @@ export class Bundler {
                 commonjs_module_ids,
                 es_modules,
                 commonjs_modules,
+                output_commonjs,
                 with_type
             );
 
@@ -726,20 +762,21 @@ export class Bundler {
 
     /**
      * @param {string} parent_path
-     * @param {((path: string, parent_path?: string | null, default_resolve?: ((path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
-     * @param {((css: string) => Promise<string>) | null} minify_css
-     * @param {((css: string) => Promise<string>) | null} minify_css_rule
-     * @param {((css: string) => Promise<string>) | null} minify_css_selector
-     * @param {((css: string) => Promise<string>) | null} minify_xml
+     * @param {((type: string, path: string, parent_path?: string | null, default_resolve?: ((type: string, path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
+     * @param {((code: string) => Promise<string>) | null} minify_css
+     * @param {((code: string) => Promise<string>) | null} minify_css_rule
+     * @param {((code: string) => Promise<string>) | null} minify_css_selector
+     * @param {((code: string) => Promise<string>) | null} minify_xml
      * @param {{[key: string]: boolean}} modules_are_commonjs
      * @param {{[key: string]: number | string}} es_module_ids
      * @param {{[key: string]: number | string}} commonjs_module_ids
      * @param {string[] | {[key: string]: string}} es_modules
      * @param {string[] | {[key: string]: string}} commonjs_modules
+     * @param {boolean} output_commonjs
      * @param {string} code
      * @returns {Promise<string>}
      */
-    async #replaceRequiresWithLoadModules(parent_path, resolve, minify_css, minify_css_rule, minify_css_selector, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, code) {
+    async #replaceRequiresWithLoadModules(parent_path, resolve, minify_css, minify_css_rule, minify_css_selector, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, output_commonjs, code) {
         let _code = code;
 
         for (const [
@@ -764,6 +801,7 @@ export class Bundler {
                 commonjs_module_ids,
                 es_modules,
                 commonjs_modules,
+                output_commonjs,
                 "cjs"
             );
 
@@ -790,20 +828,24 @@ export class Bundler {
     }
 
     /**
+     * @param {string} type
      * @param {string} path
      * @param {string | null} parent_path
-     * @param {((path: string, parent_path?: string | null, default_resolve?: ((path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
+     * @param {((type: string, path: string, parent_path?: string | null, default_resolve?: ((type: string, path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
      * @returns {Promise<string | false>}
      */
-    async #resolve(path, parent_path = null, resolve = null) {
+    async #resolve(type, path, parent_path = null, resolve = null) {
         return (resolve !== null ? await resolve(
+            type,
             path,
             parent_path,
-            async (_path, _parent_path = null) => this.#defaultResolve(
+            async (_type, _path, _parent_path = null) => this.#defaultResolve(
+                _type,
                 _path,
                 _parent_path
             )
         ) : null) ?? this.#defaultResolve(
+            type,
             path,
             parent_path
         );

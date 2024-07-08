@@ -6,6 +6,17 @@ Changes:
 
 \-
 
+## v2024-07-08-1
+
+Changes:
+
+- Resolve type `import`|`require` (Currently ineffective in `default_resolve` due NodeJS limit)
+- Split `minify` option from `dev` option
+- `minify_esm_javascript` and `minify_commonjs_javascript` option for direct minify bundle
+- Renamed to `bundler`
+- Remove `minifyFolder` from minifier
+- `Template` folder
+
 ## v2024-07-05-1
 
 Changes:
