@@ -6,6 +6,13 @@ Changes:
 
 \-
 
+## v2024-07-08-3
+
+Changes:
+
+- `library` folder
+- Use NodeJS `exports` in `package.json` for clean imports from subfolder
+
 ## v2024-07-08-2
 
 Changes:
