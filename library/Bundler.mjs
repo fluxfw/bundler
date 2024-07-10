@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { chmod, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createRequire, isBuiltin } from "node:module";
 import { dirname, extname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:util";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 export class Bundler {
     /**
