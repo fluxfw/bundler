@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { chmod, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createRequire, isBuiltin } from "node:module";
 import { dirname, extname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:util";
 
 export class Bundler {
     /**
@@ -26,7 +27,7 @@ export class Bundler {
     /**
      * @param {string} input_path
      * @param {string} output_file
-     * @param {((type: string, path: string, parent_path?: string | null, default_resolve?: ((type: string, path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
+     * @param {((path: string, parent_path?: string | null, is_commonjs?: boolean | null) => Promise<string | false | null>) | null} resolve
      * @param {boolean | null} minify
      * @param {((code: string) => Promise<string>) | null} minify_esm_javascript
      * @param {((code: string) => Promise<string>) | null} minify_commonjs_javascript
@@ -65,7 +66,7 @@ export class Bundler {
             _output_commonjs
         );
 
-        if (result === null) {
+        if (result === null || typeof result === "string") {
             throw Error(`Invalid input path ${input_path}!`);
         }
 
@@ -172,7 +173,22 @@ export class Bundler {
     /**
      * @param {string} path
      * @param {string | null} parent_path
-     * @param {((path: string, parent_path?: string | null, default_resolve?: ((path: string, parent_path?: string | null) => Promise<string | false | null>) | null) => Promise<string | false | null>) | null} resolve
+     * @param {boolean | null} is_commonjs
+     * @returns {Promise<string>}
+     */
+    async resolve(path, parent_path = null, is_commonjs = null) {
+        if ( /*is_commonjs ?? false*/true) {
+            return createRequire(parent_path ?? process.argv[1] ?? join(process.cwd(), ".cjs")).resolve(path);
+        } else {
+            // TODO: NodeJS does not support pass `parent_path` to `import.meta.resolve` without runtime flag yet
+            return fileURLToPath(import.meta.resolve(path, pathToFileURL(parent_path ?? process.argv[1] ?? join(process.cwd(), ".mjs"))));
+        }
+    }
+
+    /**
+     * @param {string} path
+     * @param {string | null} parent_path
+     * @param {((path: string, parent_path?: string | null, is_commonjs?: boolean | null) => Promise<string | false | null>) | null} resolve
      * @param {((code: string) => Promise<string>) | null} minify_css
      * @param {((code: string) => Promise<string>) | null} minify_css_rule
      * @param {((code: string) => Promise<string>) | null} minify_css_selector
@@ -184,20 +200,24 @@ export class Bundler {
      * @param {string[] | {[key: string]: string}} commonjs_modules
      * @param {boolean} output_commonjs
      * @param {string | null} with_type
-     * @returns {Promise<[number | string, string | null, string[], string, boolean] | null>}
+     * @returns {Promise<string | [number | string, string | null, string[], string, boolean] | null>}
      */
     async #bundle(path, parent_path, resolve, minify_css, minify_css_rule, minify_css_selector, minify_xml, modules_are_commonjs, es_module_ids, commonjs_module_ids, es_modules, commonjs_modules, output_commonjs, with_type = null) {
-        const resolve_type = !((parent_path !== null ? modules_are_commonjs[parent_path] : null) ?? output_commonjs) ? "import" : "require";
+        const resolve_is_commonjs = !((parent_path !== null ? modules_are_commonjs[parent_path] : null) ?? output_commonjs);
 
         const absolute_path = await this.#resolve(
-            resolve_type,
             path,
             parent_path,
+            resolve_is_commonjs,
             resolve
         );
 
-        if (absolute_path === false) {
+        if (absolute_path === null) {
             return null;
+        }
+
+        if (typeof absolute_path !== "string") {
+            return absolute_path.replace;
         }
 
         let read_file;
@@ -267,13 +287,18 @@ export class Bundler {
                         }
 
                         const __absolute_path = await this.#resolve(
-                            resolve_type,
                             _path,
                             absolute_path,
+                            resolve_is_commonjs,
                             resolve
                         );
 
-                        if (__absolute_path === false) {
+                        if (__absolute_path === null) {
+                            continue;
+                        }
+
+                        if (typeof __absolute_path !== "string") {
+                            code = code.replaceAll(url, `url(${JSON.stringify(__absolute_path.replace)})`);
                             continue;
                         }
 
@@ -410,32 +435,6 @@ export class Bundler {
     }
 
     /**
-     * @param {string} type
-     * @param {string} path
-     * @param {string | null} parent_path
-     * @returns {Promise<string | false>}
-     */
-    async #defaultResolve(type, path, parent_path = null) {
-        if (isBuiltin(path)) {
-            return false;
-        }
-
-        switch (type) {
-            // TODO: NodeJS does not support pass `parent_path` to `import.meta.resolve` without runtime flag
-            /*case "import":
-                return fileURLToPath(import.meta.resolve(path, pathToFileURL(parent_path ?? process.argv[1] ?? join(process.cwd(), ".mjs"))));*/
-
-            case "import":
-            case "require":
-                return createRequire(parent_path ?? process.argv[1] ?? join(process.cwd(), ".cjs")).resolve(path);
-
-            default:
-                return false;
-
-        }
-    }
-
-    /**
      * @param {string} path
      * @returns {Promise<[string, string]>}
      */
@@ -569,7 +568,7 @@ export class Bundler {
 
     /**
      * @param {string} parent_path
-     * @param {((type: string, path: string, parent_path?: string | null, default_resolve?: ((type: string, path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
+     * @param {((path: string, parent_path?: string | null, is_commonjs?: boolean | null) => Promise<string | false | null>) | null} resolve
      * @param {((code: string) => Promise<string>) | null} minify_css
      * @param {((code: string) => Promise<string>) | null} minify_css_rule
      * @param {((code: string) => Promise<string>) | null} minify_css_selector
@@ -617,6 +616,11 @@ export class Bundler {
             );
 
             if (result === null) {
+                continue;
+            }
+
+            if (typeof result === "string") {
+                _code = _code.replaceAll(_import, `${start}import(${JSON.stringify(result)})`);
                 continue;
             }
 
@@ -762,7 +766,7 @@ export class Bundler {
 
     /**
      * @param {string} parent_path
-     * @param {((type: string, path: string, parent_path?: string | null, default_resolve?: ((type: string, path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
+     * @param {((path: string, parent_path?: string | null, is_commonjs?: boolean | null) => Promise<string | false | null>) | null} resolve
      * @param {((code: string) => Promise<string>) | null} minify_css
      * @param {((code: string) => Promise<string>) | null} minify_css_rule
      * @param {((code: string) => Promise<string>) | null} minify_css_selector
@@ -809,6 +813,11 @@ export class Bundler {
                 continue;
             }
 
+            if (typeof result === "string") {
+                _code = _code.replaceAll(require, `${start}require(${JSON.stringify(result)})`);
+                continue;
+            }
+
             const [
                 module_id
             ] = result;
@@ -828,26 +837,33 @@ export class Bundler {
     }
 
     /**
-     * @param {string} type
      * @param {string} path
      * @param {string | null} parent_path
-     * @param {((type: string, path: string, parent_path?: string | null, default_resolve?: ((type: string, path: string, parent_path?: string | null) => Promise<string | false>) | null) => Promise<string | false | null>) | null} resolve
-     * @returns {Promise<string | false>}
+     * @param {boolean | null} is_commonjs
+     * @param {((path: string, parent_path?: string | null, is_commonjs?: boolean | null) => Promise<string | false | null>) | null} resolve
+     * @returns {Promise<string | {replace: string} | null>}
      */
-    async #resolve(type, path, parent_path = null, resolve = null) {
-        return (resolve !== null ? await resolve(
-            type,
+    async #resolve(path, parent_path = null, is_commonjs = null, resolve = null) {
+        const absolute_path = (resolve !== null ? await resolve(
             path,
             parent_path,
-            async (_type, _path, _parent_path = null) => this.#defaultResolve(
-                _type,
-                _path,
-                _parent_path
-            )
-        ) : null) ?? this.#defaultResolve(
-            type,
+            is_commonjs
+        ) : null) ?? await this.resolve(
             path,
-            parent_path
+            parent_path,
+            is_commonjs
         );
+
+        if (absolute_path === false) {
+            return null;
+        }
+
+        if (!isBuiltin(absolute_path)) {
+            return absolute_path;
+        }
+
+        return !absolute_path.startsWith("node:") ? {
+            replace: `node:${absolute_path}`
+        } : null;
     }
 }

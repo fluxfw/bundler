@@ -6,6 +6,14 @@ Changes:
 
 \-
 
+## v2024-07-10-1
+
+Changes:
+
+- Remove `default_resolve` param and move it to `bundler.resolve`
+- Rename `resolve` `type` param to `is_commonjs`, move to lastest param and optional param
+- Ensure NodeJS built-in modules are with `node:`
+
 ## v2024-07-08-3
 
 Changes:
