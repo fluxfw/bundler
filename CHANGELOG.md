@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-07-18-1
+
+Changes:
+
+- Remove static property values from constructor to property definition
+
 ## v2024-07-10-2
 
 Changes:

@@ -8,7 +8,7 @@ export class Bundler {
     /**
      * @type {{[key: string]: string}}
      */
-    #read_file_cache;
+    #read_file_cache = {};
 
     /**
      * @returns {Promise<Bundler>}
@@ -21,7 +21,7 @@ export class Bundler {
      * @private
      */
     constructor() {
-        this.#read_file_cache = {};
+
     }
 
     /**
