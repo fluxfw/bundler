@@ -4,24 +4,34 @@ import { createRequire, isBuiltin } from "node:module";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+/** @typedef {import("./Logger/Logger.mjs").Logger} Logger */
+
 export class Bundler {
+    /**
+     * @type {Logger}
+     */
+    #logger;
     /**
      * @type {{[key: string]: string}}
      */
     #read_file_cache = {};
 
     /**
+     * @param {Logger | null} logger
      * @returns {Promise<Bundler>}
      */
-    static async new() {
-        return new this();
+    static async new(logger = null) {
+        return new this(
+            logger ?? console
+        );
     }
 
     /**
+     * @param {Logger} logger
      * @private
      */
-    constructor() {
-
+    constructor(logger) {
+        this.#logger = logger;
     }
 
     /**
@@ -40,7 +50,9 @@ export class Bundler {
      * @returns {Promise<void>}
      */
     async bundle(input_path, output_file, resolve = null, minify = null, minify_esm_javascript = null, minify_commonjs_javascript = null, minify_css = null, minify_css_rule = null, minify_css_selector = null, minify_xml = null, dev = null, output_commonjs = null) {
-        console.log(`Bundle ${output_file}`);
+        this.#logger.log(
+            `Bundle ${output_file}`
+        );
 
         const _dev = dev ?? false;
         const _minify = minify ?? !_dev;
